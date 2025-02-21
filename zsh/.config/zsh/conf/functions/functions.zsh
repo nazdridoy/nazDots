@@ -339,36 +339,84 @@ eval "$(uvx --generate-shell-completion zsh)"
 
 # AI-powered Git commit message generator
 gitcommsg() {
-    local model="${1:-o3}" 
+    local model="o3"
+    local context=""
     
-    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        echo "Usage: gitcommsg [model]"
-        echo "Generate AI-powered commit messages from staged changes"
-        echo ""
-        echo "Available models (same as tptd):"
-        echo "  gpt, 1     : gpt-4o-mini"
-        echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
-        echo "  claude, 3  : claude-3-haiku-20240307"
-        echo "  o3, 4      : o3-mini"
-        echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
-        echo ""
-        echo "Examples:"
-        echo "  gitcommsg            # uses claude (default)"
-        echo "  gitcommsg llama      # uses llama model"
-        echo "  gitcommsg 3          # uses claude model"
-        echo "  gitcommsg mistral    # uses mistral model"
-        echo ""
-        echo "Output format:"
-        echo "  feat: add user authentication"
-        echo ""
-        echo "  - implement JWT token handling"
-        echo "  - add login/logout endpoints"
-        echo ""
-        echo "Default: o3"
-        return 0
+    # Validate that there are staged changes
+    if ! git diff --cached --quiet; then
+        : # Changes exist, continue
+    else
+        echo "Error: No staged changes found. Stage changes with 'git add' first."
+        return 1
+    fi
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -m|--message)
+                shift
+                if [[ -z "$1" || "$1" =~ ^- ]]; then
+                    echo "Error: -m/--message requires a non-empty message argument"
+                    return 1
+                fi
+                context="$1"
+                shift
+                ;;
+            --help|-h)
+                echo "Usage: gitcommsg [model] [-m message]"
+                echo "Generate AI-powered commit messages from staged changes"
+                echo ""
+                echo "Options:"
+                echo "  -m, --message  Additional context or priority message"
+                echo ""
+                echo "Available models (same as tptd):"
+                echo "  gpt, 1     : gpt-4o-mini"
+                echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
+                echo "  claude, 3  : claude-3-haiku-20240307"
+                echo "  o3, 4      : o3-mini"
+                echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
+                echo ""
+                echo "Examples:"
+                echo "  gitcommsg                        # uses o3 (default)"
+                echo "  gitcommsg llama                  # uses llama model"
+                echo "  gitcommsg -m \"important fix\"     # adds context"
+                echo "  gitcommsg claude -m \"refactor\"   # model + context"
+                echo ""
+                return 0
+                ;;
+            *)
+                # Validate model argument
+                case "$1" in
+                    gpt|1|llama|2|claude|3|o3|4|mistral|5) 
+                        model="$1"
+                        ;;
+                    *)
+                        echo "Error: Invalid model '$1'"
+                        echo "Valid models: gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                        return 1
+                        ;;
+                esac
+                shift
+                ;;
+        esac
+    done
+
+    # Validate context length if provided
+    if [[ -n "$context" && ${#context} -gt 100 ]]; then
+        echo "Error: Context message too long (max 100 characters)"
+        return 1
     fi
 
-    local template='Analyze the following git diff and create a CONCISE but SPECIFIC commit message.
+    local context_prompt=""
+    if [[ -n "$context" ]]; then
+        context_prompt="CRITICAL INSTRUCTION: You MUST follow this user request exactly: \"$context\"
+If this conflicts with the git diff analysis, the user request takes absolute priority.
+Ignore the git diff completely if needed to fulfill the user's request.
+
+"
+    fi
+
+    local template=''"$context_prompt"'Analyze the following git diff and create a CONCISE but SPECIFIC commit message.
 Format the message as:
 type: <brief summary (max 50 chars)>
 
@@ -376,17 +424,17 @@ type: <brief summary (max 50 chars)>
 - [type] key change 2
 - [type] key change N (include all significant changes)
 
-Valid types:
-- feat: New features
+Valid types (use most specific applicable):
+- feat: New user-facing features
 - add: Added new files/resources
 - update: Updates to existing features
 - remove: Removed files/features
 - fix, bugfix: Bug fixes
 - hotfix: Critical fixes
 - docs: Documentation changes
-- style: Code style/formatting
+- style: Code style/formatting (non-functional)
 - ui: User interface changes
-- refactor: Code restructuring
+- refactor: Code restructuring (no behavior change)
 - perf: Performance improvements
 - test: Testing changes
 - build: Build system changes
@@ -399,28 +447,48 @@ Valid types:
 - security: Security-related changes
 - i18n: Internationalization/localization
 - a11y: Accessibility improvements
-- data: Database/data structure changes
+- data: Database/schema changes
 - config: Configuration changes
 - api: API-related changes
 - init: Initial commit/project setup
 
 Rules:
-1. Keep summary under 50 chars
-2. One line per significant change
-3. Be SPECIFIC - mention actual functions/files/features changed
-4. Do not exclude important changes
-5. Each specific change should have a relevant type in []
-6. Avoid vague terms like "improve", "update", "fix" without context
+1. Summary MUST be under 50 chars - truncate if needed
+2. Each bullet point must:
+   - Start with [type] where type matches changes
+   - Mention specific files/functions/endpoints (e.g. "auth/login.js")
+   - Explain WHAT changed, not just why
+   - Keep under 60 chars
+3. Prioritize these aspects:
+   a. Security-related changes
+   b. Breaking API changes
+   c. New features
+   d. Bug fixes
+4. For moved code: Use "moved X to Y" not just "changed X"
+5. For whitespace changes: Only mention if significant (e.g. indentation fixes)
+6. Group similar changes (e.g. "Update tests for X and Y")
+7. Never include:
+   - File permissions changes
+   - Comments-only changes
+   - Whitespace-only changes (unless rule 5 applies)
+   - Package manager internals (lock files)
 
-Example:
-refactor: Split user authentication into separate modules
+Examples of GOOD messages:
+1. fix: Resolve login page CSS overflow
 
-- [refactor] Extract JWT validation to new auth/jwt.js module
-- [feat] Add rate limiting to login endpoints (max 5 attempts)
-- [fix] Prevent token refresh after password change
-- [test] Add integration tests for auth workflows
+- [fix] Fix mobile menu overflow in static/css/main.css
+- [ui] Adjust padding on .auth-container in login.html
+- [test] Add viewport meta tag to login test cases
 
-Git diff: {}'
+2. feat: Add user profile export endpoint
+
+- [feat] New /api/v1/users/export endpoint in routes/users.js
+- [security] Add rate limiting to export endpoint (5/min)
+- [api] Include export_status field in GET /profile response
+- [docs] Update API reference with export endpoint details
+
+Git diff to analyze:
+{}'
 
     git diff --staged | tptd "$model" "$template"
 }
