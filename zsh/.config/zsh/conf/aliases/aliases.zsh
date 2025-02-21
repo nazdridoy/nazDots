@@ -446,9 +446,6 @@ fi
 # Bind nvim as vim
 alias vim=nvim
 
-
-# Git my dotfile bare repo at ~/NAZ/repo/dotfiles (Usages : dtf git <git options>)
-alias dtf='GIT_WORK_TREE="$HOME" GIT_DIR="$HOME/NAZ/repo/dotfiles"'
 # Remove git Cache
 alias rmgitcache="rm -r ~/.cache/git"
 # List PATH
