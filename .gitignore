@@ -1,0 +1,7 @@
+# Zsh files
+**/zsh/.zsh_history
+**/zsh/.zcompdump*
+**/*.zwc
+**/*.zwc.old
+**/zsh/.zcompcache/
+**/zsh/.zhistory
