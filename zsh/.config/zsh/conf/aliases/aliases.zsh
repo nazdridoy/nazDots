@@ -455,14 +455,6 @@ alias svn="svn --config-dir $XDG_CONFIG_HOME/subversion"
 # ADB 
 alias adb='HOME="$XDG_DATA_HOME"/android adb' 
 
-# tgpt aliases
-## tgpt with phind
-# alias tptp='tgpt --provider phind'
-## tgpt with gpt-4o-mini
-# alias tpto='tgpt --provider duckduckgo --model "gpt-4o-mini"'
-## tgpt with claude
-# alias tptc='tgpt --provider duckduckgo --model "claude-3-haiku-20240307"'
-
 #HTML Manpage
 alias 'mnlx'='BROWSER=lynx man -H'
 
