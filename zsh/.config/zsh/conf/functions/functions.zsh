@@ -266,9 +266,21 @@ xtptd() { _xtgpt "tptd" "$1" "$2" }
 xtptp() { _xtgpt "tptp" "$1" }
 
 setCFenv() {
-  # Retrieve credentials from KWallet
-  local cf_api_key=$(kwalletcli -f "cloudFlare_api" -e "CF_WAI_API_Key" 2>/dev/null)
-  local cf_account_id=$(kwalletcli -f "cloudFlare_api" -e "CF_WAI_ACC" 2>/dev/null)
+  # Add timeout handling
+  local timeout=5
+  local cf_api_key
+  local cf_account_id
+  
+  echo "Retrieving CloudFlare credentials..."
+  
+  # Use timeout command if available
+  if command -v timeout >/dev/null 2>&1; then
+    cf_api_key=$(timeout $timeout kwalletcli -f "cloudFlare_api" -e "CF_WAI_API_Key" 2>/dev/null)
+    cf_account_id=$(timeout $timeout kwalletcli -f "cloudFlare_api" -e "CF_WAI_ACC" 2>/dev/null)
+  else
+    cf_api_key=$(kwalletcli -f "cloudFlare_api" -e "CF_WAI_API_Key" 2>/dev/null)
+    cf_account_id=$(kwalletcli -f "cloudFlare_api" -e "CF_WAI_ACC" 2>/dev/null)
+  fi
 
   # Verify both credentials were retrieved
   if [[ -z "$cf_api_key" || -z "$cf_account_id" ]]; then
