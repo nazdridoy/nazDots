@@ -98,13 +98,25 @@ cht() {
 
 # Create a directory and change into it at the same time
 mkd() {
- mkdir -p "$@"
- if [ "$#" -gt 1 ]; then
+  # Add error handling and feedback
+  if [[ $# -eq 0 ]]; then
+    echo "Usage: mkd <directory_name> [directory_name2 ...]"
+    return 1
+  fi
+  
+  mkdir -p "$@"
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Failed to create directory"
+    return 1
+  fi
+  
+  if [[ "$#" -gt 1 ]]; then
+    echo "Multiple directories created. Select one to enter:"
     selected_dir=$(echo "$@" | tr ' ' '\n' | fzf)
-    cd "$selected_dir"
- else
-    cd "$1"
- fi
+    [[ -n "$selected_dir" ]] && cd "$selected_dir" && pwd
+  else
+    cd "$1" && pwd
+  fi
 }
 
 
