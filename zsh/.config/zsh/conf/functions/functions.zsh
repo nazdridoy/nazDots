@@ -74,30 +74,38 @@ nvis () {
 #####               Web Search Tools                #####
 ########################################################
 
-# w3m DuckDuckGo Search Function
-duck () {
+# Web search functions 
+# Usage: ddg query, ggl query, srx query, etc.
+
+# DuckDuckGo search
+ddg() {
   w3m "duckduckgo.com/lite?q=$*"
 }
-# w3m Google Search Function 
-google () {
- w3m "google.com/search?&q=$*"
-}
-# w3m Searx.be Search Function 
-searx () {
- w3m "https://searx.be/search?q=$*"
-}
-# w3m "command-not-found.com" Search Function
-cmdntfound () {
-  w3m "https://command-not-found.com/$*"
-}
-# w3m "cheat.sh Search Function
-cht.sh (){
-   w3m "cht.sh/$*"
+
+# Google search
+ggl() {
+  w3m "google.com/search?&q=$*"
 }
 
-# cheat.sh Function
-cht() { 
-  curl cheat.sh/$1
+# Searx.be search
+srx() {
+  w3m "https://searx.be/search?q=$*"
+}
+
+# command-not-found.com search
+cmd() {
+  w3m "https://command-not-found.com/$*"
+}
+
+# cheat.sh searches
+# w3m browser version (for reading)
+wcht() {
+  w3m "cht.sh/$*"
+}
+
+# curl version (for copying/piping)
+cht() {
+  curl "cheat.sh/$1"
 }
 
 # Create a directory and change into it at the same time

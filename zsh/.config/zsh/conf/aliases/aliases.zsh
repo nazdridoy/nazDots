@@ -463,20 +463,6 @@ alias adb='HOME="$XDG_DATA_HOME"/android adb'
 ## tgpt with claude
 # alias tptc='tgpt --provider duckduckgo --model "claude-3-haiku-20240307"'
 
-
-
-# w3m DuckDuckGo search
-alias '?d'=duck
-# w3m Google Search
-alias '?g'=google
-# w3m Searx.be search
-alias '?sx'=searx
-# w3m "command-not-found.com"" search
-alias '?which'=cmdntfound
-# search in cheat.sh
-#alias 'cht'=cheat
-# w3m search in cheat.sh
-alias '?cht'=cht.sh
 #HTML Manpage
 alias 'mnlx'='BROWSER=lynx man -H'
 
