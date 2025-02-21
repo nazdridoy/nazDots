@@ -385,11 +385,13 @@ alias yarn='yarn --use-yarnrc "$XDG_CONFIG_HOME/yarn/config"'
 # +clean HOME -nvidia-settings
 alias nvidia-settings='nvidia-settings --config="$XDG_CONFIG_HOME"/nvidia/settings'
 
-# pritify list or ls with eza
+# File listing with eza
 eza_params=('--git' '--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale' 'all')
+# Basic listings
 alias ls='ls --hyperlink --color=auto'
 alias l='eza --hyperlink ${eza_params}'
 alias ll='eza --hyperlink --all --header --long ${eza_params}'
+# Special listings
 alias llm='eza --hyperlink --all --header --long --sort=modified ${eza_params}'
 alias la='eza --hyperlink -lbhHigUmuSa'
 alias lx='eza --hyperlink -lbhHigUmuSa@'
@@ -402,45 +404,37 @@ alias lt='eza --hyperlink --tree --long'
 alias bathelp='bat --plain --language=help'
 # to pritify logs read
 alias batlog='bat --paging=never -l log'
+# Consider adding:
+alias batdiff='bat --diff'
+alias batshow='bat --show-all'
 
 # Paru
 if (( $+commands[paru] )); then
-  # Clean out old and unused caches and packages
-  alias paclean='paru -Sc'
-  # Remove all files from the cache 
-  alias paclr='paru -Scc'
-  # Sync with repositories before upgrading packages
-  alias paupg='paru -Syu'
-  # Same as `paupg`, but without confirmation
-  alias pasu='paru -Syu --noconfirm'
-  # Install packages from the repositories 
-  alias pain='paru -S'
-  # Install a package from a local file
-  alias pains='paru -U'
-  # Remove packages, keeping its settings and dependencies
-  alias pare='paru -R'
-  # Remove packages, including its settings and unneeded dependencies
-  alias parem='paru -Rns'
-  # Display information about a package in the repositories
-  alias parep='paru -Si'
-  # Search for packages in the repositories
-  alias pareps='paru -Ss'
-  # Display information about a package in the local database
-  alias paloc='paru -Qi'
-  # Search for packages in the local database
-  alias palocs='paru -Qs'
-  # List installed packages including from AUR (tagged as "local")
-  alias palst='paru -Qe'
-  # Remove orphans using paru
-  alias paorph='paru -Qtd'
-  # Install packages as dependencies of another package
-  alias painsd='paru -S --asdeps'
-  # Force refresh of all package lists after updating mirrorlist
-  alias pamir='paru -Syy'
-  # Update and refresh local package, ABS and AUR databases
-  alias paupd="paru -Sy"
-  # Sync with repositories before upgrading packages
-  alias upgrade='paru -Syu'
+  # Updates and maintenance
+  alias paupg='paru -Syu'                  # Full system upgrade
+  alias pasu='paru -Syu --noconfirm'       # Non-interactive upgrade
+  alias paupd="paru -Sy"                   # Update databases
+  alias upgrade='paru -Syu'                # Alternative upgrade command
+  alias pamir='paru -Syy'                  # Force refresh package lists
+  
+  # Package operations
+  alias pain='paru -S'                     # Install packages
+  alias pains='paru -U'                    # Install from file
+  alias pare='paru -R'                     # Remove package
+  alias parem='paru -Rns'                  # Remove with dependencies
+  
+  # Queries and searches
+  alias parep='paru -Si'                   # Package info
+  alias pareps='paru -Ss'                  # Search repositories
+  alias paloc='paru -Qi'                   # Local package info
+  alias palocs='paru -Qs'                  # Search local packages
+  alias palst='paru -Qe'                   # List installed packages
+  
+  # Cleanup and maintenance
+  alias paclean='paru -Sc'                 # Clean cache
+  alias paclr='paru -Scc'                  # Clean all cache
+  alias paorph='paru -Qtd'                 # List orphans
+  alias painsd='paru -S --asdeps'          # Install as dependency
 fi
 
 # Bind nvim as vim
@@ -450,9 +444,9 @@ alias vim=nvim
 alias rmgitcache="rm -r ~/.cache/git"
 # List PATH
 alias path='echo -e ${PATH//:/\\n}'
-# Subversion
+# Subversion config-dir
 alias svn="svn --config-dir $XDG_CONFIG_HOME/subversion"
-# ADB 
+# Android ADB HOME
 alias adb='HOME="$XDG_DATA_HOME"/android adb' 
 
 #HTML Manpage
