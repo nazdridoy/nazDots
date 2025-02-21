@@ -260,3 +260,92 @@ eval "$(navi widget zsh)"
 # shell autocompletion for uv and uvx
 eval "$(uv generate-shell-completion zsh)"
 eval "$(uvx --generate-shell-completion zsh)"
+
+# AI-powered Git commit message generator
+gitcommsg() {
+    local model="${1:-claude}"  # Default to claude if no model specified
+    
+    # Show help if requested
+    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+        echo "Usage: gitcommsg [model]"
+        echo "Generate AI-powered commit messages from staged changes"
+        echo ""
+        echo "Available models (same as tptd):"
+        echo "  gpt, 1     : gpt-4o-mini"
+        echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
+        echo "  claude, 3  : claude-3-haiku-20240307"
+        echo "  o3, 4      : o3-mini"
+        echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
+        echo ""
+        echo "Examples:"
+        echo "  gitcommsg            # uses claude (default)"
+        echo "  gitcommsg llama      # uses llama model"
+        echo "  gitcommsg 3          # uses claude model"
+        echo "  gitcommsg mistral    # uses mistral model"
+        echo ""
+        echo "Output format:"
+        echo "  feat: add user authentication"
+        echo ""
+        echo "  - implement JWT token handling"
+        echo "  - add login/logout endpoints"
+        echo ""
+        echo "Default: claude"
+        return 0
+    fi
+
+    local template='Analyze the following git diff and create a CONCISE but SPECIFIC commit message.
+Format the message as:
+type: <brief summary (max 50 chars)>
+
+- [type] key change 1 (max 60 chars per line)
+- [type] key change 2
+- [type] key change N (include all significant changes)
+
+Valid types:
+- feat: New features
+- add: Added new files/resources
+- update: Updates to existing features
+- remove: Removed files/features
+- fix, bugfix: Bug fixes
+- hotfix: Critical fixes
+- docs: Documentation changes
+- style: Code style/formatting
+- ui: User interface changes
+- refactor: Code restructuring
+- perf: Performance improvements
+- test: Testing changes
+- build: Build system changes
+- ci: CI/CD changes
+- deploy: Deployment/release
+- deps: Dependency updates
+- chore: Maintenance tasks
+- revert: Reverts previous changes
+- wip: Work in progress
+- security: Security-related changes
+- i18n: Internationalization/localization
+- a11y: Accessibility improvements
+- data: Database/data structure changes
+- config: Configuration changes
+- api: API-related changes
+- init: Initial commit/project setup
+
+Rules:
+1. Keep summary under 50 chars
+2. One line per significant change
+3. Be SPECIFIC - mention actual functions/files/features changed
+4. Do not exclude important changes
+5. Each specific change should have a relevant type in []
+6. Avoid vague terms like "improve", "update", "fix" without context
+
+Example:
+refactor: Split user authentication into separate modules
+
+- [refactor] Extract JWT validation to new auth/jwt.js module
+- [feat] Add rate limiting to login endpoints (max 5 attempts)
+- [fix] Prevent token refresh after password change
+- [test] Add integration tests for auth workflows
+
+Git diff: {}'
+
+    git diff --staged | tptd "$model" "$template"
+}
