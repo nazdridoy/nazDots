@@ -517,7 +517,7 @@ rewrite() {
         return 0
     fi
 
-    local template='Rewrite the following text to be more natural and grammatically correct.
+    local template="Rewrite the following text to be more natural and grammatically correct.
 Important rules:
 1. Preserve the original tone (angry, happy, sorry, formal, etc)
 2. Fix grammar and spelling errors
@@ -525,8 +525,42 @@ Important rules:
 4. Keep the same meaning and intent
 5. Do not change the level of politeness/rudeness
 6. Do not add or remove main points
+7. Specific guidelines:
+   a. Convert passive voice to active voice where appropriate
+   b. Break up long sentences (max 25 words) but maintain pacing
+   c. Replace jargon with simpler terms when possible
+   d. Maintain technical terms when crucial to meaning
+   e. Fix misplaced modifiers and dangling participles
+   f. Ensure pronoun references are clear
+   g. Keep lists parallel in structure
+   h. Preserve any markdown/code formatting
+8. Handle special cases:
+   - Preserve code samples between \`\`\` unchanged
+   - Maintain quoted text integrity
+   - Keep placeholders like {variable} intact
+   - Preserve URLs and email addresses
+   - Maintain original paragraph breaks and newlines
+   - Only remove line breaks if they create awkward spacing
+   - Preserve list formatting (bullets/numbers)
+   - Keep related ideas in the same paragraph
 
-Text to rewrite: {}'
+Examples of GOOD rewrites:
+Original: \"The system, it should be noted, when in operation, may experience lags.\"
+Rewritten: \"The system might experience delays during operation.\"
+
+Original: \"We was planning to done the task yesterday but it weren't possible.\"
+Rewritten: \"We had planned to complete the task yesterday, but it wasn't possible.\"
+
+Original: \"For better results, the user should first login then they can clicking the button.\"
+Rewritten: \"For better results, users should log in first before clicking the button.\"
+
+Original: \"First paragraph.\n\n\nSecond paragraph here.\"
+Rewritten: \"First paragraph.\n\nSecond paragraph here.\"
+
+Original: \"Item 1:\n- Apple\n- Banana\n\nItem 2:\n- Carrot\n- Potato\"
+Rewritten: \"Item 1:\n- Apple\n- Banana\n\nItem 2:\n- Carrot\n- Potato\"
+
+    Text to rewrite: {}"
 
     tptd "$model" "$template"
 }
