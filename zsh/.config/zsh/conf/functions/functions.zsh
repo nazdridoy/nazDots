@@ -263,7 +263,7 @@ eval "$(uvx --generate-shell-completion zsh)"
 
 # AI-powered Git commit message generator
 gitcommsg() {
-    local model="${1:-claude}" 
+    local model="${1:-o3}" 
     
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
         echo "Usage: gitcommsg [model]"
@@ -288,7 +288,7 @@ gitcommsg() {
         echo "  - implement JWT token handling"
         echo "  - add login/logout endpoints"
         echo ""
-        echo "Default: claude"
+        echo "Default: o3"
         return 0
     fi
 
