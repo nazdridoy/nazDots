@@ -263,9 +263,8 @@ eval "$(uvx --generate-shell-completion zsh)"
 
 # AI-powered Git commit message generator
 gitcommsg() {
-    local model="${1:-claude}"  # Default to claude if no model specified
+    local model="${1:-claude}" 
     
-    # Show help if requested
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
         echo "Usage: gitcommsg [model]"
         echo "Generate AI-powered commit messages from staged changes"
@@ -348,4 +347,42 @@ refactor: Split user authentication into separate modules
 Git diff: {}'
 
     git diff --staged | tptd "$model" "$template"
+}
+
+# AI-powered text rewriter that preserves tone
+rewrite() {
+    local model="${1:-o3}"
+    
+    if [[ -t 0 || ! -p /dev/stdin || "$1" == "--help" || "$1" == "-h" ]]; then
+        echo "Usage: rewrite [model]"
+        echo "Rewrite text to be more natural while preserving tone"
+        echo ""
+        echo "Available models (same as tptd):"
+        echo "  gpt, 1     : gpt-4o-mini"
+        echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
+        echo "  claude, 3  : claude-3-haiku-20240307"
+        echo "  o3, 4      : o3-mini"
+        echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
+        echo ""
+        echo "Examples:"
+        echo "  echo \"your text\" | rewrite"
+        echo "  echo \"angry message\" | rewrite llama"
+        echo "  cat file.txt | rewrite claude"
+        echo ""
+        echo "Default: o3"
+        return 0
+    fi
+
+    local template='Rewrite the following text to be more natural and grammatically correct.
+Important rules:
+1. Preserve the original tone (angry, happy, sorry, formal, etc)
+2. Fix grammar and spelling errors
+3. Make it flow more naturally
+4. Keep the same meaning and intent
+5. Do not change the level of politeness/rudeness
+6. Do not add or remove main points
+
+Text to rewrite: {}'
+
+    tptd "$model" "$template"
 }
