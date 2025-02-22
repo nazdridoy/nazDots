@@ -1,4 +1,30 @@
 ########################################################
+#####            Functions for Extra Plugins       #####
+########################################################
+
+# tere file expoler
+tere() {
+    local result=$(command tere "$@")
+    [ -n "$result" ] && cd -- "$result"
+}
+#Initialize zoxide
+eval "$(zoxide init zsh --hook pwd)"
+
+#Navi Cheatsheet (load after oh-my-zsh.sh)
+eval "$(navi widget zsh)"
+
+# AM autocompletion
+#autoload bashcompinit
+#bashcompinit
+#source "/home/nazmul/.config/zsh/.bash_completion"
+
+# shell autocompletion for uv and uvx
+eval "$(uv generate-shell-completion zsh)"
+eval "$(uvx --generate-shell-completion zsh)"
+
+
+
+########################################################
 #####            Custom Function Define            #####
 ########################################################
 
@@ -382,32 +408,6 @@ setCFenv() {
   echo "CF_WAI_ACC:    $CF_WAI_ACC"
   echo "CF_WAI_API_Key: ${CF_WAI_API_Key:0:4}****${CF_WAI_API_Key: -4}"
 }
-
-
-
-########################################################
-#####            Extra plugin/scripts              #####
-########################################################
-
-# tere file expoler
-tere() {
-    local result=$(command tere "$@")
-    [ -n "$result" ] && cd -- "$result"
-}
-#Initialize zoxide
-eval "$(zoxide init zsh --hook pwd)"
-
-#Navi Cheatsheet (load after oh-my-zsh.sh)
-eval "$(navi widget zsh)"
-
-# AM autocompletion
-#autoload bashcompinit
-#bashcompinit
-#source "/home/nazmul/.config/zsh/.bash_completion"
-
-# shell autocompletion for uv and uvx
-eval "$(uv generate-shell-completion zsh)"
-eval "$(uvx --generate-shell-completion zsh)"
 
 # AI-powered Git commit message generator
 gitcommsg() {
