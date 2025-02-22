@@ -335,45 +335,49 @@ tptc() {
 ## tgpt with local Ollama
 tpto() {
     local model=""
-    case "${1:-}" in
-        "deepseek"|"1")
-            model="deepseek-r1:1.5b"
-            shift
-            ;;
-        "qwen3b"|"2")
-            model="qwen2.5-coder:3b"
-            shift
-            ;;
-        "qwen7b"|"3")
-            model="qwen2.5-coder:7b"
-            shift
-            ;;
-        "llama3"|"4")
-            model="llama3.2:latest"
-            shift
-            ;;
-        "gemma"|"5")
-            model="gemma2:2b"
-            shift
-            ;;
-        "--help"|"-h")
-            echo "Usage: tpto [model] <query>"
-            echo "Available models:"
-            echo "  deepseek, 1 : deepseek-r1:1.5b"
-            echo "  qwen3b, 2   : qwen2.5-coder:3b"
-            echo "  qwen7b, 3   : qwen2.5-coder:7b"
-            echo "  llama3, 4   : llama3.2:latest"
-            echo "  gemma, 5    : gemma2:2b"
-            echo "Default: llama3.2:latest"
-            echo ""
-            echo "Note: Requires Ollama server running and model downloaded locally."
-            echo "      Run 'ollama serve' and 'ollama pull <model>' if needed."
-            return 0
-            ;;
-        *)
-            model="llama3.2:latest"
-            ;;
-    esac
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "${1:-}" in
+            "deepseek"|"1")
+                model="deepseek-r1:1.5b"
+                shift
+                ;;
+            "qwen3b"|"2")
+                model="qwen2.5-coder:3b"
+                shift
+                ;;
+            "qwen7b"|"3")
+                model="qwen2.5-coder:7b"
+                shift
+                ;;
+            "llama3"|"4")
+                model="llama3.2:latest"
+                shift
+                ;;
+            "gemma"|"5")
+                model="gemma2:2b"
+                shift
+                ;;
+            "--help"|"-h")
+                echo "Usage: tpto [model] <query>"
+                echo "Available models:"
+                echo "  deepseek, 1 : deepseek-r1:1.5b"
+                echo "  qwen3b, 2   : qwen2.5-coder:3b"
+                echo "  qwen7b, 3   : qwen2.5-coder:7b"
+                echo "  llama3, 4   : llama3.2:latest"
+                echo "  gemma, 5    : gemma2:2b"
+                echo "Default: llama3.2:latest"
+                echo ""
+                echo "Note: Requires Ollama server running and model downloaded locally."
+                echo "      Run 'ollama serve' and 'ollama pull <model>' if needed."
+                return 0
+                ;;
+            *)
+                model="llama3.2:latest"
+                ;;
+        esac
+    done
 
     # Check Ollama installation
     if ! command -v ollama >/dev/null 2>&1; then
