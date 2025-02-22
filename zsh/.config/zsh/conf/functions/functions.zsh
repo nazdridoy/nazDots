@@ -232,11 +232,80 @@ tptc() {
          "$@"
 }
 
+## tgpt with local Ollama
+tpto() {
+    local model=""
+    case "${1:-}" in
+        "deepseek"|"1")
+            model="deepseek-r1:1.5b"
+            shift
+            ;;
+        "qwen3b"|"2")
+            model="qwen2.5-coder:3b"
+            shift
+            ;;
+        "qwen7b"|"3")
+            model="qwen2.5-coder:7b"
+            shift
+            ;;
+        "llama3"|"4")
+            model="llama3.2:latest"
+            shift
+            ;;
+        "gemma"|"5")
+            model="gemma2:2b"
+            shift
+            ;;
+        "--help"|"-h")
+            echo "Usage: tpto [model] <query>"
+            echo "Available models:"
+            echo "  deepseek, 1 : deepseek-r1:1.5b"
+            echo "  qwen3b, 2   : qwen2.5-coder:3b"
+            echo "  qwen7b, 3   : qwen2.5-coder:7b"
+            echo "  llama3, 4   : llama3.2:latest"
+            echo "  gemma, 5    : gemma2:2b"
+            echo "Default: llama3.2:latest"
+            echo ""
+            echo "Note: Requires Ollama server running and model downloaded locally."
+            echo "      Run 'ollama serve' and 'ollama pull <model>' if needed."
+            return 0
+            ;;
+        *)
+            model="llama3.2:latest"
+            ;;
+    esac
+
+    # Check Ollama installation
+    if ! command -v ollama >/dev/null 2>&1; then
+        echo "Error: Ollama not found. Install from https://ollama.ai/download"
+        return 1
+    fi
+
+    # Check if Ollama server is running
+    if ! ollama list >/dev/null 2>&1; then
+        echo "Error: Ollama server not running. Start with: ollama serve"
+        echo "Note: Keep the serve session running in another terminal"
+        return 1
+    fi
+
+    # Verify model exists locally
+    local model_exists=$(ollama list | awk '{print $1}' | grep -w "${model%%:*}")
+    if [[ -z "$model_exists" ]]; then
+        echo "Error: Model '${model%%:*}' not found in local Ollama library"
+        echo "Available models:"
+        ollama list
+        echo "\nInstall with: ollama pull ${model%%:*}"
+        return 1
+    fi
+
+    tgpt --provider ollama --model "$model" "$@"
+}
+
 # Generic template function for tgpt commands
 _xtgpt() {
     # Display help message if --help or -h is passed
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        echo "Usage: xtptp/xtptd/xtptc <template> [model]"
+        echo "Usage: xtptp/xtptd/xtptc/xtpto <template> [model]"
         echo ""
         echo "Replace placeholders in the template with input and execute the command."
         echo ""
@@ -244,10 +313,12 @@ _xtgpt() {
         echo "  <template>    A text template with placeholders (e.g., 'hello {}, how are you?')"
         echo "  [model]       For xtptd: model number (1-5) or name (gpt/llama/claude/o3/mistral)"
         echo "                For xtptc: model number (1-3) or name (llama/deepseek/llama70b)"
+        echo "                For xtpto: model number (1-5) or name (deepseek/qwen3b/qwen7b/llama3/gemma)"
         echo ""
         echo "Example:"
         echo "  echo \"Vscode\" | xtptd \"what is {}, can it play music?\" claude"
         echo "  echo \"Python\" | xtptc \"explain {} in simple terms\" llama70b"
+        echo "  echo \"Docker\" | xtpto \"how to optimize {} containers?\" llama3"
         echo ""
         return 0
     fi
@@ -256,15 +327,15 @@ _xtgpt() {
     local template="$2"
     local model="$3"
 
-    # If it's tptd/tptc and a model is specified, append it to the command
-    if [[ ("$cmd" == "tptd" || "$cmd" == "tptc") && -n "$model" ]]; then
-        while IFS= read -r input; do
-            $cmd "$model" "${template//\{\}/$input}"
-        done
+    # Read ALL input at once instead of line-by-line
+    local input
+    input=$(cat)
+
+    # If it's tptd/tptc/tpto and a model is specified, append it to the command
+    if [[ ("$cmd" == "tptd" || "$cmd" == "tptc" || "$cmd" == "tpto") && -n "$model" ]]; then
+        $cmd "$model" "${template//\{\}/$input}"
     else
-        while IFS= read -r input; do
-            $cmd "${template//\{\}/$input}"
-        done
+        $cmd "${template//\{\}/$input}"
     fi
 }
 
@@ -272,6 +343,7 @@ _xtgpt() {
 xtptc() { _xtgpt "tptc" "$1" "$2" }
 xtptd() { _xtgpt "tptd" "$1" "$2" }
 xtptp() { _xtgpt "tptp" "$1" }
+xtpto() { _xtgpt "tpto" "$1" "$2" }
 
 setCFenv() {
   # Add timeout handling
@@ -344,6 +416,7 @@ gitcommsg() {
     local chunk_mode=false
     local recursive_chunk=false
     local chunk_size=300
+    local use_offline=false
 
     # Parse arguments first
     while [[ $# -gt 0 ]]; do
@@ -357,21 +430,26 @@ gitcommsg() {
                 echo "  -m, --message  Additional context or priority message"
                 echo "  -c, --chunk    Process large diffs in chunks (for 429 errors)"
                 echo "  -cc, --chunk-recursive  Recursively chunk large commit messages"
+                echo "  --offline      Use local Ollama model instead of online provider"
                 echo ""
-                echo "Available models (same as tptd):"
-                echo "  gpt, 1     : gpt-4o-mini"
-                echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
-                echo "  claude, 3  : claude-3-haiku-20240307"
-                echo "  o3, 4      : o3-mini"
-                echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
+                echo "Available models:"
+                echo "  Online (default):"
+                echo "    gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                echo "  Offline (with --offline):"
+                echo "    deepseek/1, qwen3b/2, qwen7b/3, llama3/4, gemma/5"
                 echo ""
                 echo "Examples:"
                 echo "  gitcommsg                        # uses o3 (default)"
                 echo "  gitcommsg llama                  # uses llama model"
                 echo "  gitcommsg -m \"important fix\"     # adds context"
                 echo "  gitcommsg claude -m \"refactor\"   # model + context"
-                echo ""
+                echo "  gitcommsg --offline llama3 -c    # offline with chunking"
+                echo "  gitcommsg --offline deepseek -m \"security patch\""
                 return 0
+                ;;
+            --offline)
+                use_offline=true
+                shift
                 ;;
             -m|--message)
                 shift
@@ -393,16 +471,29 @@ gitcommsg() {
                 ;;
             *)
                 # Validate model argument
-                case "$1" in
-                    gpt|1|llama|2|claude|3|o3|4|mistral|5) 
-                        model="$1"
-                        ;;
-                    *)
-                        echo "Error: Invalid model '$1'"
-                        echo "Valid models: gpt/1, llama/2, claude/3, o3/4, mistral/5"
-                        return 1
-                        ;;
-                esac
+                if $use_offline; then
+                    case "$1" in
+                        deepseek|1|qwen3b|2|qwen7b|3|llama3|4|gemma|5)
+                            model="$1"
+                            ;;
+                        *)
+                            echo "Error: Invalid offline model '$1'"
+                            echo "Valid offline models: deepseek/1, qwen3b/2, qwen7b/3, llama3/4, gemma/5"
+                            return 1
+                            ;;
+                    esac
+                else
+                    case "$1" in
+                        gpt|1|llama|2|claude|3|o3|4|mistral|5) 
+                            model="$1"
+                            ;;
+                        *)
+                            echo "Error: Invalid model '$1'"
+                            echo "Valid models: gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                            return 1
+                            ;;
+                    esac
+                fi
                 shift
                 ;;
         esac
@@ -510,6 +601,10 @@ Git diff to analyze:
         local template="$2"
         local recursion_depth=0
         local max_recursion=3
+        local ai_cmd="tptd"
+        if $use_offline; then
+            ai_cmd="tpto"
+        fi
         
         if $chunk_mode; then
             echo "Processing diff in chunks (${chunk_size} lines)..."
@@ -544,7 +639,7 @@ Diff chunk:\n{}"
                 while true; do
                     local tmpfile=$(mktemp)
                     local cmd_status=0
-                    tptd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                    $ai_cmd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
                     cmd_status=${pipestatus[1]}
                     
                     if [ $cmd_status -eq 0 ]; then
@@ -627,13 +722,19 @@ Final message:"
             fi
         fi
 
-        echo "\n🎉 Final commit message:"
-        tptd "$model" "$template" <<< "$diff_input"
+        if $ai_cmd "$model" "$template" <<< "$diff_input"; then
+            echo "\n🎉 Final commit message generated successfully!"
+        else
+            echo "❌ Failed to generate commit message:"
+            return 1
+        fi
     }
 
     # Capture diff and process
     local diff_content=$(git diff --staged)
-    process_diff "$diff_content" "$template"
+    if ! process_diff "$diff_content" "$template"; then
+        return 1
+    fi
 }
 
 # AI-powered text rewriter that preserves tone
