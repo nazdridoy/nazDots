@@ -341,8 +341,11 @@ eval "$(uvx --generate-shell-completion zsh)"
 gitcommsg() {
     local model="o3"
     local context=""
+    local chunk_mode=false
+    local recursive_chunk=false
+    local chunk_size=300
     
-    # Validate that there are staged changes
+    # Validate staged changes
     if ! git diff --cached --quiet; then
         : # Changes exist, continue
     else
@@ -362,12 +365,23 @@ gitcommsg() {
                 context="$1"
                 shift
                 ;;
+            -cc|--chunk-recursive)
+                recursive_chunk=true
+                chunk_mode=true
+                shift
+                ;;
+            -c|--chunk)
+                chunk_mode=true
+                shift
+                ;;
             --help|-h)
-                echo "Usage: gitcommsg [model] [-m message]"
+                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc]"
                 echo "Generate AI-powered commit messages from staged changes"
                 echo ""
                 echo "Options:"
                 echo "  -m, --message  Additional context or priority message"
+                echo "  -c, --chunk    Process large diffs in chunks (for 429 errors)"
+                echo "  -cc, --chunk-recursive  Recursively chunk large commit messages"
                 echo ""
                 echo "Available models (same as tptd):"
                 echo "  gpt, 1     : gpt-4o-mini"
@@ -490,7 +504,135 @@ Examples of GOOD messages:
 Git diff to analyze:
 {}'
 
-    git diff --staged | tptd "$model" "$template"
+    local process_diff() {
+        local diff_input="$1"
+        local template="$2"
+        local recursion_depth=0
+        local max_recursion=3
+        
+        if $chunk_mode; then
+            echo "Processing diff in chunks (${chunk_size} lines)..."
+            
+            # Create temp directory
+            local temp_dir=$(mktemp -d)
+            trap "rm -rf $temp_dir" EXIT
+            
+            # Split diff into chunks
+            echo "$diff_input" | split -l $chunk_size - "$temp_dir/chunk_"
+            
+            local chunk_count=$(ls "$temp_dir" | wc -l)
+            echo "Found $chunk_count chunks to process"
+            
+            # Process each chunk
+            local i=1
+            for chunk in "$temp_dir"/chunk_*; do
+                echo "\n=== CHUNK $i/$chunk_count ==="
+                echo "Raw diff lines: $(wc -l < "$chunk")"
+                local chunk_template="Analyze this PARTIAL git diff and create a commit message summary with this exact format:
+[FILES]: Comma-separated affected files
+[CHANGES]: Bullet points of technical changes (max 3)
+[IMPACT]: One line describing user-facing impact
+
+Diff chunk:\n{}"
+                
+                echo "\n🚧 Partial analysis:"
+                local max_retries=3
+                local retry_count=0
+                local wait_seconds=10
+                
+                while true; do
+                    local tmpfile=$(mktemp)
+                    local cmd_status=0
+                    tptd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                    cmd_status=${pipestatus[1]}
+                    
+                    if [ $cmd_status -eq 0 ]; then
+                        cat "$tmpfile" >> "$temp_dir/partials.txt"
+                        break
+                    else
+                        ((retry_count++))
+                        if [ $retry_count -gt $max_retries ]; then
+                            rm -f "$tmpfile"
+                            echo "❌ Failed after $max_retries retries. Aborting."
+                            return 1
+                        fi
+                        
+                        echo -n "⚠️  Error (attempt $retry_count/$max_retries). Waiting ${wait_seconds}s... "
+                        local spin='⣷⣯⣟⡿⢿⣻⣽⣾'
+                        local start_time=$SECONDS
+                        while (( (SECONDS - start_time) < wait_seconds )); do
+                            echo -n "${spin:0:1}"
+                            spin="${spin:1}${spin:0:1}"
+                            sleep 0.2
+                            echo -ne "\b"
+                        done
+                        echo -e "\r🔄 Retrying...    "
+                        
+                        # Exponential backoff
+                        wait_seconds=$((wait_seconds * 2))
+                    fi
+                    rm -f "$tmpfile"
+                done
+                
+                ((i++))
+                
+                # Rate limit protection
+                if ((i < chunk_count)); then
+                    echo -n "⏳ Pausing 10s "
+                    local spin='⣷⣯⣟⡿⢿⣻⣽⣾'
+                    local start_time=$SECONDS
+                    while (( (SECONDS - start_time) < 10 )); do
+                        echo -n "${spin:0:1}"
+                        spin="${spin:1}${spin:0:1}"
+                        sleep 0.2
+                        echo -ne "\b"
+                    done
+                    echo -e "\r✅ Continued.   "
+                fi
+            done
+            
+            echo "\n📦 Collected partial analyses:"
+            cat "$temp_dir/partials.txt"
+            
+            # Combine partial results
+            echo "\n🔨 Combining partial analyses..."
+            local combine_template="Synthesize this commit message from partial analyses (iteration $((recursion_depth + 1))):
+$(cat "$temp_dir/partials.txt")
+
+Rules:
+1. Group changes by category (docs, feat, fix, etc)
+2. Prioritize user-facing changes
+3. Keep bullets under 60 chars
+4. Follow conventional commit format
+
+Final message:"
+            diff_input="$combine_template"
+            
+            # Recursive chunking for large messages
+            if $recursive_chunk && (( recursion_depth < max_recursion )); then
+                local msg_length=$(echo "$diff_input" | wc -l)
+                local msg_threshold=50
+                
+                while (( msg_length > msg_threshold )) && (( recursion_depth < max_recursion )); do
+                    echo "\n⚠️  Combined message too long (${msg_length} lines), re-chunking..."
+                    ((recursion_depth++))
+                    
+                    # Process the long message as new input
+                    diff_input=$(process_diff "$diff_input" "$template")
+                    msg_length=$(echo "$diff_input" | wc -l)
+                    
+                    echo "\n🔄 Recursion depth $recursion_depth - New length: ${msg_length} lines"
+                done
+            fi
+        fi
+
+        echo "\n🎉 Final commit message:"
+        tptd "$model" "$template" <<< "$diff_input"
+    }
+
+    # Capture diff and process
+    local diff_content=$(git diff --staged)
+    process_diff "$diff_content" "$template"
 }
 
 # AI-powered text rewriter that preserves tone
