@@ -165,85 +165,147 @@ mkd() {
 ########################################################
 
 ## tgpt with phind
-
 tptp() {
-    tgpt --provider phind "$@"
-} 
+    local use_tor=false
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "${1:-}" in
+            "--tor")
+                use_tor=true
+                shift
+                ;;
+            "--help"|"-h")
+                echo "Usage: tptp [--tor] <query>"
+                echo ""
+                echo "Options:"
+                echo "  --tor      : Route traffic through Tor network"
+                return 0
+                ;;
+            *)
+                break  # Break on first non-option argument
+                ;;
+        esac
+    done
+
+    if $use_tor; then
+        if ! command -v torify >/dev/null 2>&1; then
+            echo "Error: torify not found. Please install tor package."
+            return 1
+        fi
+        torify tgpt --provider phind "$@"
+    else
+        tgpt --provider phind "$@"
+    fi
+}
 
 ## tgpt with duckduckgo provider and multiple models
 tptd() {
-    local model=""
-    case "${1:-}" in
-        "gpt"|"1")
-            model="gpt-4o-mini"
-            shift
-            ;;
-        "llama"|"2")
-            model="meta-llama/Llama-3.3-70B-Instruct-Turbo"
-            shift
-            ;;
-        "claude"|"3")
-            model="claude-3-haiku-20240307"
-            shift
-            ;;
-        "o3"|"4")
-            model="o3-mini"
-            shift
-            ;;
-        "mistral"|"5")
-            model="mistralai/Mistral-Small-24B-Instruct-2501"
-            shift
-            ;;
-        "--help"|"-h")
-            echo "Usage: tptd [model] <query>"
-            echo "Available models:"
-            echo "  gpt, 1     : gpt-4o-mini"
-            echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
-            echo "  claude, 3  : claude-3-haiku-20240307"
-            echo "  o3, 4      : o3-mini"
-            echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
-            echo "Default: o3-mini"
-            return 0
-            ;;
-        *)
-            model="o3-mini"
-            ;;
-    esac
-    
-    tgpt --provider duckduckgo --model "$model" "$@"
+    local model="o3-mini"  # Set default model first
+    local use_tor=false
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "${1:-}" in
+            "--tor")
+                use_tor=true
+                shift
+                ;;
+            "gpt"|"1")
+                model="gpt-4o-mini"
+                shift
+                ;;
+            "llama"|"2")
+                model="meta-llama/Llama-3.3-70B-Instruct-Turbo"
+                shift
+                ;;
+            "claude"|"3")
+                model="claude-3-haiku-20240307"
+                shift
+                ;;
+            "o3"|"4")
+                model="o3-mini"
+                shift
+                ;;
+            "mistral"|"5")
+                model="mistralai/Mistral-Small-24B-Instruct-2501"
+                shift
+                ;;
+            "--help"|"-h")
+                echo "Usage: tptd [--tor] [model] <query>"
+                echo "Available models:"
+                echo "  gpt, 1     : gpt-4o-mini"
+                echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
+                echo "  claude, 3  : claude-3-haiku-20240307"
+                echo "  o3, 4      : o3-mini"
+                echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
+                echo "Default: o3-mini"
+                echo ""
+                echo "Options:"
+                echo "  --tor      : Route traffic through Tor network"
+                return 0
+                ;;
+            *)
+                break  # Break on first non-option argument
+                ;;
+        esac
+    done
+
+    # Check if torify is available when --tor is used
+    if $use_tor; then
+        if ! command -v torify >/dev/null 2>&1; then
+            echo "Error: torify not found. Please install tor package."
+            return 1
+        fi
+        torify tgpt --provider duckduckgo --model "$model" "$@"
+    else
+        tgpt --provider duckduckgo --model "$model" "$@"
+    fi
 }
 
 ## tgpt with CloudFlare AI API
 tptc() {
-    local model=""
-    case "${1:-}" in
-        "llama"|"1")
-            model="@cf/meta/llama-3.1-8b-instruct"
-            shift
-            ;;
-        "deepseek"|"2")
-            model="@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"
-            shift
-            ;;
-        "llama70b"|"3")
-            model="@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-            shift
-            ;;
-        "--help"|"-h")
-            echo "Usage: tptc [model] <query>"
-            echo "Available models:"
-            echo "  llama, 1     : @cf/meta/llama-3.1-8b-instruct"
-            echo "  deepseek, 2  : @cf/deepseek-ai/deepseek-r1-distill-qwen-32b"
-            echo "  llama70b, 3  : @cf/meta/llama-3.3-70b-instruct-fp8-fast"
-            echo "Default: @cf/meta/llama-3.1-8b-instruct"
-            echo ""
-            echo "Note: Requires CloudFlare credentials. Run setCFenv first."
-            return 0
-            ;;
-        *)
-            model="@cf/meta/llama-3.1-8b-instruct"
-            ;;
-    esac
+    local model="@cf/meta/llama-3.1-8b-instruct"  # Set default model first
+    local use_tor=false
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "${1:-}" in
+            "--tor")
+                use_tor=true
+                shift
+                ;;
+            "llama"|"1")
+                model="@cf/meta/llama-3.1-8b-instruct"
+                shift
+                ;;
+            "deepseek"|"2")
+                model="@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"
+                shift
+                ;;
+            "llama70b"|"3")
+                model="@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+                shift
+                ;;
+            "--help"|"-h")
+                echo "Usage: tptc [--tor] [model] <query>"
+                echo "Available models:"
+                echo "  llama, 1     : @cf/meta/llama-3.1-8b-instruct"
+                echo "  deepseek, 2  : @cf/deepseek-ai/deepseek-r1-distill-qwen-32b"
+                echo "  llama70b, 3  : @cf/meta/llama-3.3-70b-instruct-fp8-fast"
+                echo "Default: @cf/meta/llama-3.1-8b-instruct"
+                echo ""
+                echo "Options:"
+                echo "  --tor      : Route traffic through Tor network"
+                echo ""
+                echo "Note: Requires CloudFlare credentials. Run setCFenv first."
+                return 0
+                ;;
+            *)
+                break  # Break on first non-option argument
+                ;;
+        esac
+    done
     
     # Check if CloudFlare environment variables are set (only when making a query)
     if [[ -z "$CF_WAI_API_Key" || -z "$CF_WAI_ACC" ]]; then
@@ -251,11 +313,23 @@ tptc() {
         return 1
     fi
     
-    tgpt --provider openai \
-         --url "https://api.cloudflare.com/client/v4/accounts/${CF_WAI_ACC}/ai/v1/chat/completions" \
-         --model "$model" \
-         --key "${CF_WAI_API_Key}" \
-         "$@"
+    if $use_tor; then
+        if ! command -v torify >/dev/null 2>&1; then
+            echo "Error: torify not found. Please install tor package."
+            return 1
+        fi
+        torify tgpt --provider openai \
+             --url "https://api.cloudflare.com/client/v4/accounts/${CF_WAI_ACC}/ai/v1/chat/completions" \
+             --model "$model" \
+             --key "${CF_WAI_API_Key}" \
+             "$@"
+    else
+        tgpt --provider openai \
+             --url "https://api.cloudflare.com/client/v4/accounts/${CF_WAI_ACC}/ai/v1/chat/completions" \
+             --model "$model" \
+             --key "${CF_WAI_API_Key}" \
+             "$@"
+    fi
 }
 
 ## tgpt with local Ollama
