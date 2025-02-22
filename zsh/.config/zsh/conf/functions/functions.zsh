@@ -409,19 +409,20 @@ tpto() {
 _xtgpt() {
     # Display help message if --help or -h is passed
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        echo "Usage: xtptp/xtptd/xtptc/xtpto <template> [model]"
+        echo "Usage: xtptp/xtptd/xtptc/xtpto <template> [--tor] [model]"
         echo ""
         echo "Replace placeholders in the template with input and execute the command."
         echo ""
         echo "Arguments:"
         echo "  <template>    A text template with placeholders (e.g., 'hello {}, how are you?')"
+        echo "  --tor        Route traffic through Tor network (not for xtpto)"
         echo "  [model]       For xtptd: model number (1-5) or name (gpt/llama/claude/o3/mistral)"
         echo "                For xtptc: model number (1-3) or name (llama/deepseek/llama70b)"
         echo "                For xtpto: model number (1-5) or name (deepseek/qwen3b/qwen7b/llama3/gemma)"
         echo ""
         echo "Example:"
-        echo "  echo \"Vscode\" | xtptd \"what is {}, can it play music?\" claude"
-        echo "  echo \"Python\" | xtptc \"explain {} in simple terms\" llama70b"
+        echo "  echo \"Vscode\" | xtptd \"what is {}, can it play music?\" --tor claude"
+        echo "  echo \"Python\" | xtptc \"explain {} in simple terms\" --tor llama70b"
         echo "  echo \"Docker\" | xtpto \"how to optimize {} containers?\" llama3"
         echo ""
         return 0
@@ -429,25 +430,54 @@ _xtgpt() {
 
     local cmd="$1"
     local template="$2"
-    local model="$3"
+    shift 2
 
     # Read ALL input at once instead of line-by-line
     local input
     input=$(cat)
 
-    # If it's tptd/tptc/tpto and a model is specified, append it to the command
-    if [[ ("$cmd" == "tptd" || "$cmd" == "tptc" || "$cmd" == "tpto") && -n "$model" ]]; then
-        $cmd "$model" "${template//\{\}/$input}"
+    # Handle --tor option for supported commands
+    local use_tor=false
+    local model=""
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            "--tor")
+                if [[ "$cmd" != "tpto" ]]; then
+                    use_tor=true
+                else
+                    echo "Warning: --tor option not supported for xtpto (local Ollama)"
+                fi
+                shift
+                ;;
+            *)
+                model="$1"
+                shift
+                ;;
+        esac
+    done
+
+    # Build the command with appropriate options
+    if [[ -n "$model" ]]; then
+        if $use_tor; then
+            $cmd --tor "$model" "${template//\{\}/$input}"
+        else
+            $cmd "$model" "${template//\{\}/$input}"
+        fi
     else
-        $cmd "${template//\{\}/$input}"
+        if $use_tor; then
+            $cmd --tor "${template//\{\}/$input}"
+        else
+            $cmd "${template//\{\}/$input}"
+        fi
     fi
 }
 
 # Create functions for different providers
-xtptc() { _xtgpt "tptc" "$1" "$2" }
-xtptd() { _xtgpt "tptd" "$1" "$2" }
-xtptp() { _xtgpt "tptp" "$1" }
-xtpto() { _xtgpt "tpto" "$1" "$2" }
+xtptc() { _xtgpt "tptc" "$@" }
+xtptd() { _xtgpt "tptd" "$@" }
+xtptp() { _xtgpt "tptp" "$@" }
+xtpto() { _xtgpt "tpto" "$@" }
 
 setCFenv() {
   # Add timeout handling
