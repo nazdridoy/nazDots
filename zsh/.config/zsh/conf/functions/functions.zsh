@@ -525,13 +525,14 @@ gitcommsg() {
     local recursive_chunk=false
     local chunk_size=300
     local use_offline=false
+    local use_tor=false
 
     # Parse arguments first
     while [[ $# -gt 0 ]]; do
         case $1 in
             --help|-h)
                 # Help message display
-                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc]"
+                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [--offline]"
                 echo "Generate AI-powered commit messages from staged changes"
                 echo ""
                 echo "Options:"
@@ -539,6 +540,7 @@ gitcommsg() {
                 echo "  -c, --chunk    Process large diffs in chunks (for 429 errors)"
                 echo "  -cc, --chunk-recursive  Recursively chunk large commit messages"
                 echo "  --offline      Use local Ollama model instead of online provider"
+                echo "  --tor         Route traffic through Tor network (not for offline mode)"
                 echo ""
                 echo "Available models:"
                 echo "  Online (default):"
@@ -554,6 +556,10 @@ gitcommsg() {
                 echo "  gitcommsg --offline llama3 -c    # offline with chunking"
                 echo "  gitcommsg --offline deepseek -m \"security patch\""
                 return 0
+                ;;
+            --tor)
+                use_tor=true
+                shift
                 ;;
             --offline)
                 use_offline=true
@@ -606,6 +612,18 @@ gitcommsg() {
                 ;;
         esac
     done
+
+    # Check if --tor and --offline are used together
+    if $use_tor && $use_offline; then
+        echo "Error: --tor cannot be used with --offline mode"
+        return 1
+    fi
+
+    # Check if in a Git repository
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Error: Not a Git repository. Run this command from a Git project root."
+        return 1
+    fi
 
     # Moved staged changes validation AFTER help check
     if ! git diff --cached --quiet; then
@@ -747,7 +765,11 @@ Diff chunk:\n{}"
                 while true; do
                     local tmpfile=$(mktemp)
                     local cmd_status=0
-                    $ai_cmd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                    if $use_tor && ! $use_offline; then
+                        $ai_cmd --tor "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                    else
+                        $ai_cmd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                    fi
                     cmd_status=${pipestatus[1]}
                     
                     if [ $cmd_status -eq 0 ]; then
@@ -830,11 +852,12 @@ Final message:"
             fi
         fi
 
-        if $ai_cmd "$model" "$template" <<< "$diff_input"; then
-            echo "\n🎉 Final commit message generated successfully!"
+        echo "\n🎉 Final commit message generation..."
+        # Final command execution with tor support
+        if $use_tor && ! $use_offline; then
+            $ai_cmd --tor "$model" "$template" <<< "$diff_input"
         else
-            echo "❌ Failed to generate commit message:"
-            return 1
+            $ai_cmd "$model" "$template" <<< "$diff_input"
         fi
     }
 
