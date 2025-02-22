@@ -870,26 +870,54 @@ Final message:"
 
 # AI-powered text rewriter that preserves tone
 rewrite() {
-    local model="${1:-o3}"
+    local model="o3"
+    local use_tor=false
     
-    if [[ -t 0 || ! -p /dev/stdin || "$1" == "--help" || "$1" == "-h" ]]; then
-        echo "Usage: rewrite [model]"
-        echo "Rewrite text to be more natural while preserving tone"
-        echo ""
-        echo "Available models (same as tptd):"
-        echo "  gpt, 1     : gpt-4o-mini"
-        echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
-        echo "  claude, 3  : claude-3-haiku-20240307"
-        echo "  o3, 4      : o3-mini"
-        echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
-        echo ""
-        echo "Examples:"
-        echo "  echo \"your text\" | rewrite"
-        echo "  echo \"angry message\" | rewrite llama"
-        echo "  cat file.txt | rewrite claude"
-        echo ""
-        echo "Default: o3"
-        return 0
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            "--tor")
+                use_tor=true
+                shift
+                ;;
+            "--help"|"-h")
+                echo "Usage: rewrite [--tor] [model]"
+                echo "Rewrite text to be more natural while preserving tone"
+                echo ""
+                echo "Options:"
+                echo "  --tor        Route traffic through Tor network"
+                echo ""
+                echo "Available models (same as tptd):"
+                echo "  gpt, 1     : gpt-4o-mini"
+                echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
+                echo "  claude, 3  : claude-3-haiku-20240307"
+                echo "  o3, 4      : o3-mini"
+                echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
+                echo ""
+                echo "Examples:"
+                echo "  echo \"your text\" | rewrite"
+                echo "  echo \"angry message\" | rewrite --tor llama"
+                echo "  cat file.txt | rewrite --tor claude"
+                echo ""
+                echo "Default: o3"
+                return 0
+                ;;
+            gpt|1|llama|2|claude|3|o3|4|mistral|5)
+                model="$1"
+                shift
+                ;;
+            *)
+                echo "Error: Invalid model '$1'"
+                echo "Valid models: gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                return 1
+                ;;
+        esac
+    done
+
+    if [[ -t 0 || ! -p /dev/stdin ]]; then
+        echo "Error: No input provided. Use pipe to provide text."
+        echo "Example: echo \"text\" | rewrite [--tor] [model]"
+        return 1
     fi
 
     local template="Rewrite the following text to be more natural and grammatically correct.
@@ -926,16 +954,12 @@ Rewritten: \"The system might experience delays during operation.\"
 Original: \"We was planning to done the task yesterday but it weren't possible.\"
 Rewritten: \"We had planned to complete the task yesterday, but it wasn't possible.\"
 
-Original: \"For better results, the user should first login then they can clicking the button.\"
-Rewritten: \"For better results, users should log in first before clicking the button.\"
+Text to rewrite: {}"
 
-Original: \"First paragraph.\n\n\nSecond paragraph here.\"
-Rewritten: \"First paragraph.\n\nSecond paragraph here.\"
-
-Original: \"Item 1:\n- Apple\n- Banana\n\nItem 2:\n- Carrot\n- Potato\"
-Rewritten: \"Item 1:\n- Apple\n- Banana\n\nItem 2:\n- Carrot\n- Potato\"
-
-    Text to rewrite: {}"
-
-    tptd "$model" "$template"
+    # Process with tptd
+    if $use_tor; then
+        tptd --tor "$model" "$template"
+    else
+        tptd "$model" "$template"
+    fi
 }
