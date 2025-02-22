@@ -344,37 +344,12 @@ gitcommsg() {
     local chunk_mode=false
     local recursive_chunk=false
     local chunk_size=300
-    
-    # Validate staged changes
-    if ! git diff --cached --quiet; then
-        : # Changes exist, continue
-    else
-        echo "Error: No staged changes found. Stage changes with 'git add' first."
-        return 1
-    fi
-    
-    # Parse arguments
+
+    # Parse arguments first
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -m|--message)
-                shift
-                if [[ -z "$1" || "$1" =~ ^- ]]; then
-                    echo "Error: -m/--message requires a non-empty message argument"
-                    return 1
-                fi
-                context="$1"
-                shift
-                ;;
-            -cc|--chunk-recursive)
-                recursive_chunk=true
-                chunk_mode=true
-                shift
-                ;;
-            -c|--chunk)
-                chunk_mode=true
-                shift
-                ;;
             --help|-h)
+                # Help message display
                 echo "Usage: gitcommsg [model] [-m message] [-c] [-cc]"
                 echo "Generate AI-powered commit messages from staged changes"
                 echo ""
@@ -398,6 +373,24 @@ gitcommsg() {
                 echo ""
                 return 0
                 ;;
+            -m|--message)
+                shift
+                if [[ -z "$1" || "$1" =~ ^- ]]; then
+                    echo "Error: -m/--message requires a non-empty message argument"
+                    return 1
+                fi
+                context="$1"
+                shift
+                ;;
+            -cc|--chunk-recursive)
+                recursive_chunk=true
+                chunk_mode=true
+                shift
+                ;;
+            -c|--chunk)
+                chunk_mode=true
+                shift
+                ;;
             *)
                 # Validate model argument
                 case "$1" in
@@ -414,6 +407,14 @@ gitcommsg() {
                 ;;
         esac
     done
+
+    # Moved staged changes validation AFTER help check
+    if ! git diff --cached --quiet; then
+        : # Changes exist, continue
+    else
+        echo "Error: No staged changes found. Stage changes with 'git add' first."
+        return 1
+    fi
 
     # Validate context length if provided
     if [[ -n "$context" && ${#context} -gt 100 ]]; then
