@@ -405,6 +405,74 @@ tpto() {
     tgpt --provider ollama --model "$model" "$@"
 }
 
+## tgpt with nazOllama_colab_API
+tptn() {
+    local model=""
+    local use_tor=false
+    local api_url
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "${1:-}" in
+            "--tor")
+                use_tor=true
+                shift
+                ;;
+            "-ml")
+                shift
+                if [[ -z "$1" ]]; then
+                    echo "Error: -ml requires a model name"
+                    return 1
+                fi
+                model="$1"
+                shift
+                ;;
+            "--help"|"-h")
+                echo "Usage: tptn --tor -ml <modelname> <query>"
+                echo "Options:"
+                echo "  --tor    : Route traffic through Tor network"
+                echo "  -ml      : REQUIRED - Specify model name (e.g. deepseek-r1:14b)"
+                echo "Example:"
+                echo "  tptn -ml deepseek-r1:14b 'what is quantum computing?'"
+                echo "  tptn --tor -ml llama3.2:latest 'explain dark matter'"
+                return 0
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    # Validate model is provided
+    if [[ -z "$model" ]]; then
+        echo "Error: Model name is required. Use -ml to specify a model."
+        echo "Example: tptn -ml deepseek-r1:14b 'your question'"
+        return 1
+    fi
+
+    # Get dynamic URL
+    if ! api_url=$(curl -sL https://filebin.net/nazOllamaCftun/url | jq -r '.url'); then
+        echo "Error: Failed to retrieve API URL"
+        return 1
+    fi
+
+    if $use_tor; then
+        if ! command -v torify >/dev/null 2>&1; then
+            echo "Error: torify not found. Please install tor package."
+            return 1
+        fi
+        torify tgpt --provider openai \
+            --url "$api_url/v1/chat/completions" \
+            --model "$model" \
+            "$@"
+    else
+        tgpt --provider openai \
+            --url "$api_url/v1/chat/completions" \
+            --model "$model" \
+            "$@"
+    fi
+}
+
 # Generic template function for tgpt commands
 _xtgpt() {
     # Display help message if --help or -h is passed
@@ -458,17 +526,31 @@ _xtgpt() {
     done
 
     # Build the command with appropriate options
-    if [[ -n "$model" ]]; then
+    if [[ "$cmd" == "tptn" ]]; then
+        # Special handling for tptn's required -ml flag
+        if [[ -z "$model" ]]; then
+            echo "Error: tptn requires -ml flag for model specification"
+            echo "Example: xtptn 'template' -ml modelname"
+            return 1
+        fi
         if $use_tor; then
-            $cmd --tor "$model" "${template//\{\}/$input}"
+            $cmd --tor -ml "$model" "${template//\{\}/$input}"
         else
-            $cmd "$model" "${template//\{\}/$input}"
+            $cmd -ml "$model" "${template//\{\}/$input}"
         fi
     else
-        if $use_tor; then
-            $cmd --tor "${template//\{\}/$input}"
+        if [[ -n "$model" ]]; then
+            if $use_tor; then
+                $cmd --tor "$model" "${template//\{\}/$input}"
+            else
+                $cmd "$model" "${template//\{\}/$input}"
+            fi
         else
-            $cmd "${template//\{\}/$input}"
+            if $use_tor; then
+                $cmd --tor "${template//\{\}/$input}"
+            else
+                $cmd "${template//\{\}/$input}"
+            fi
         fi
     fi
 }
@@ -478,6 +560,7 @@ xtptc() { _xtgpt "tptc" "$@" }
 xtptd() { _xtgpt "tptd" "$@" }
 xtptp() { _xtgpt "tptp" "$@" }
 xtpto() { _xtgpt "tpto" "$@" }
+xtptn() { _xtgpt "tptn" "$@" }
 
 setCFenv() {
   # Add timeout handling
@@ -969,3 +1052,4 @@ Text to rewrite: {}"
         tptd "$model" "$template"
     fi
 }
+
