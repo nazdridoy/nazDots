@@ -482,7 +482,7 @@ _xtgpt() {
         echo "Replace placeholders in the template with input and execute the command."
         echo ""
         echo "Arguments:"
-        echo "  <template>    A text template with placeholders (e.g., 'hello {}, how are you?')"
+        echo "  <template>    A text template with placeholders (e.g. 'hello {}, how are you?')"
         echo "  --tor        Route traffic through Tor network (not for xtpto)"
         echo "  [model]       For xtptd: model number (1-5) or name (gpt/llama/claude/o3/mistral)"
         echo "                For xtptc: model number (1-3) or name (llama/deepseek/llama70b)"
@@ -497,8 +497,17 @@ _xtgpt() {
     fi
 
     local cmd="$1"
-    local template="$2"
-    shift 2
+    local template=""
+    shift  # Remove the command name from arguments
+
+    # Check if template is provided
+    if [[ $# -eq 0 || "$1" == -* ]]; then
+        echo "Error: Missing template argument"
+        echo "Usage: ${cmd} <template> [options]"
+        return 1
+    fi
+    template="$1"
+    shift  # Remove template from arguments
 
     # Read ALL input at once instead of line-by-line
     local input
