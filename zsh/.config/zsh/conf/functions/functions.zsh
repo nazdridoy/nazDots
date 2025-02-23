@@ -334,7 +334,7 @@ tptc() {
 
 ## tgpt with local Ollama
 tpto() {
-    local model=""
+    local model="llama3.2:latest"
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -374,7 +374,6 @@ tpto() {
                 return 0
                 ;;
             *)
-                model="llama3.2:latest"
                 break
                 ;;
         esac
@@ -528,6 +527,12 @@ gitcommsg() {
     local use_offline=false
     local use_tor=false
 
+    # Check if --offline is used but not as first argument
+    if [[ " $@ " =~ " --offline " && "$1" != "--offline" ]]; then
+        echo "Error: --offline must be the first argument if using offline mode"
+        return 1
+    fi
+
     # Parse arguments first
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -590,10 +595,10 @@ gitcommsg() {
                     case "$1" in
                         deepseek|1|qwen3b|2|qwen7b|3|llama3|4|gemma|5)
                             model="$1"
+                            shift
                             ;;
                         *)
-                            echo "Error: Invalid offline model '$1'"
-                            echo "Valid offline models: deepseek/1, qwen3b/2, qwen7b/3, llama3/4, gemma/5"
+                            echo "Error: Invalid offline model '$1' (valid: deepseek/1, qwen3b/2, qwen7b/3, llama3/4, gemma/5)"
                             return 1
                             ;;
                     esac
@@ -601,16 +606,14 @@ gitcommsg() {
                     case "$1" in
                         gpt|1|llama|2|claude|3|o3|4|mistral|5) 
                             model="$1"
+                            shift
                             ;;
                         *)
-                            echo "Error: Invalid model '$1'"
-                            echo "Valid models: gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                            echo "Error: Invalid model '$1' (valid: gpt/1, llama/2, claude/3, o3/4, mistral/5)"
                             return 1
                             ;;
                     esac
                 fi
-                shift
-                break
                 ;;
         esac
     done
