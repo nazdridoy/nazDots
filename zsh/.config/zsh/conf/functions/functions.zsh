@@ -183,7 +183,7 @@ tptp() {
                 return 0
                 ;;
             *)
-                break  # Break on first non-option argument
+                break
                 ;;
         esac
     done
@@ -246,7 +246,7 @@ tptd() {
                 return 0
                 ;;
             *)
-                break  # Break on first non-option argument
+                break
                 ;;
         esac
     done
@@ -302,7 +302,7 @@ tptc() {
                 return 0
                 ;;
             *)
-                break  # Break on first non-option argument
+                break
                 ;;
         esac
     done
@@ -375,6 +375,7 @@ tpto() {
                 ;;
             *)
                 model="llama3.2:latest"
+                break
                 ;;
         esac
     done
@@ -609,6 +610,7 @@ gitcommsg() {
                     esac
                 fi
                 shift
+                break
                 ;;
         esac
     done
@@ -905,6 +907,7 @@ rewrite() {
             gpt|1|llama|2|claude|3|o3|4|mistral|5)
                 model="$1"
                 shift
+                break
                 ;;
             *)
                 echo "Error: Invalid model '$1'"
