@@ -523,7 +523,7 @@ gitcommsg() {
     local context=""
     local chunk_mode=false
     local recursive_chunk=false
-    local chunk_size=300
+    local chunk_size=200
     local use_offline=false
     local use_tor=false
 
