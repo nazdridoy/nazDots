@@ -451,7 +451,7 @@ tptn() {
     fi
 
     # Get dynamic URL
-    if ! api_url=$(curl -sL https://filebin.net/nazOllamaCftun/url | jq -r '.url'); then
+    if ! api_url=$(curl -sL https://nazkvhub.nazdridoy.workers.dev/v1/query/ollama-tunnel | jq -r '.url'); then
         echo "Error: Failed to retrieve API URL"
         return 1
     fi
