@@ -618,6 +618,8 @@ gitcommsg() {
     local chunk_size=200
     local use_offline=false
     local use_tor=false
+    local use_nazapi=false
+    local nazapi_model=""
 
     # Check if --offline is used but not as first argument
     if [[ " $@ " =~ " --offline " && "$1" != "--offline" ]]; then
@@ -630,7 +632,7 @@ gitcommsg() {
         case $1 in
             --help|-h)
                 # Help message display
-                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [--offline]"
+                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [--offline] [-ml MODEL]"
                 echo "Generate AI-powered commit messages from staged changes"
                 echo ""
                 echo "Options:"
@@ -639,10 +641,13 @@ gitcommsg() {
                 echo "  -cc, --chunk-recursive  Recursively chunk large commit messages"
                 echo "  --offline      Use local Ollama model instead of online provider"
                 echo "  --tor         Route traffic through Tor network (not for offline mode)"
+                echo "  -ml MODEL      Use custom model with nazOllama API (requires tptn)"
                 echo ""
                 echo "Available models:"
                 echo "  Online (default):"
                 echo "    gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                echo "  nazOllama API (-ml):"
+                echo "    Any model supported by tptn (e.g. deepseek-r1:14b)"
                 echo "  Offline (with --offline):"
                 echo "    deepseek/1, qwen3b/2, qwen7b/3, llama3/4, gemma/5"
                 echo ""
@@ -653,6 +658,8 @@ gitcommsg() {
                 echo "  gitcommsg claude -m \"refactor\"   # model + context"
                 echo "  gitcommsg --offline llama3 -c    # offline with chunking"
                 echo "  gitcommsg --offline deepseek -m \"security patch\""
+                echo "  gitcommsg -ml deepseek-r1:14b      # uses nazOllama API with specified model"
+                echo "  gitcommsg --tor -ml llama3.2:latest -m \"security fix\""
                 return 0
                 ;;
             --tor)
@@ -679,6 +686,20 @@ gitcommsg() {
                 ;;
             -c|--chunk)
                 chunk_mode=true
+                shift
+                ;;
+            -ml)
+                if $use_offline; then
+                    echo "Error: -ml cannot be used with --offline mode"
+                    return 1
+                fi
+                shift
+                if [[ -z "$1" || "$1" =~ ^- ]]; then
+                    echo "Error: -ml requires a model name argument"
+                    return 1
+                fi
+                nazapi_model="$1"
+                use_nazapi=true
                 shift
                 ;;
             *)
@@ -827,6 +848,9 @@ Git diff to analyze:
         local ai_cmd="tptd"
         if $use_offline; then
             ai_cmd="tpto"
+        elif $use_nazapi; then
+            ai_cmd="tptn"
+            ai_args=("-ml" "$nazapi_model")
         fi
         
         if $chunk_mode; then
@@ -863,9 +887,17 @@ Diff chunk:\n{}"
                     local tmpfile=$(mktemp)
                     local cmd_status=0
                     if $use_tor && ! $use_offline; then
-                        $ai_cmd --tor "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        if $use_nazapi; then
+                            $ai_cmd --tor "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        else
+                            $ai_cmd --tor "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        fi
                     else
-                        $ai_cmd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        if $use_nazapi; then
+                            $ai_cmd "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        else
+                            $ai_cmd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        fi
                     fi
                     cmd_status=${pipestatus[1]}
                     
@@ -952,9 +984,17 @@ Final message:"
         echo "\n🎉 Final commit message generation..."
         # Final command execution with tor support
         if $use_tor && ! $use_offline; then
-            $ai_cmd --tor "$model" "$template" <<< "$diff_input"
+            if $use_nazapi; then
+                $ai_cmd --tor "${ai_args[@]}" "$template" <<< "$diff_input"
+            else
+                $ai_cmd --tor "$model" "$template" <<< "$diff_input"
+            fi
         else
-            $ai_cmd "$model" "$template" <<< "$diff_input"
+            if $use_nazapi; then
+                $ai_cmd "${ai_args[@]}" "$template" <<< "$diff_input"
+            else
+                $ai_cmd "$model" "$template" <<< "$diff_input"
+            fi
         fi
     }
 
