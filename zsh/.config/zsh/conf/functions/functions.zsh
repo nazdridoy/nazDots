@@ -759,14 +759,17 @@ gitcommsg() {
 
     local context_prompt=""
     if [[ -n "$context" ]]; then
-        context_prompt="CRITICAL INSTRUCTION: You MUST follow this user request exactly: \"$context\"
-If this conflicts with the git diff analysis, the user request takes absolute priority.
-Ignore the git diff completely if needed to fulfill the user's request.
+        context_prompt="CRITICAL INSTRUCTION: The following user request takes priority: \"$context\"
+
+While analyzing the git diff, ensure your response primarily reflects this request.
+The git diff should only inform additional details if they align with the request.
+Format your response according to the commit message rules, but make \"$context\" 
+the main focus of the message.
 
 "
     fi
 
-    local template=''"$context_prompt"'Analyze the following git diff and create a CONCISE but SPECIFIC commit message.
+    local template=''"$context_prompt"'   Analyze the following git diff and create a CONCISE but SPECIFIC commit message.
 Format the message as:
 type: <brief summary (max 50 chars)>
 
