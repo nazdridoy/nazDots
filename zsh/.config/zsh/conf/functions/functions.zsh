@@ -171,19 +171,29 @@ tptg() {
     local model=""
     local base_url="http://localhost:1337"
     
+    # Define color codes
+    local BLUE='\033[0;34m'
+    local GREEN='\033[0;32m'
+    local YELLOW='\033[0;33m'
+    local CYAN='\033[0;36m'
+    local PURPLE='\033[0;35m'
+    local RED='\033[0;31m'
+    local BOLD='\033[1m'
+    local NC='\033[0m' # No Color
+    
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "${1:-}" in
             "--help"|"-h")
-                echo "Usage: tptg [options] <query>"
+                echo -e "${BOLD}Usage:${NC} tptg [options] <query>"
                 echo ""
-                echo "Options:"
-                echo "  --help, -h   : Show this help message"
+                echo -e "${BOLD}Options:${NC}"
+                echo -e "  --help, -h   : Show this help message"
                 echo ""
-                echo "Example:"
-                echo "  tptg \"What is quantum computing?\""
+                echo -e "${BOLD}Example:${NC}"
+                echo -e "  tptg \"What is quantum computing?\""
                 echo ""
-                echo "Note: Requires a local gpt4free instance running at http://localhost:1337"
+                echo -e "${YELLOW}Note:${NC} Requires a local gpt4free instance running at http://localhost:1337"
                 return 0
                 ;;
             *)
@@ -196,15 +206,15 @@ tptg() {
     
     # Check if prompt is provided
     if [[ -z "$prompt" ]]; then
-        echo "Error: No prompt provided"
-        echo "Usage: tptg <query>"
+        echo -e "${RED}Error:${NC} No prompt provided"
+        echo -e "Usage: tptg <query>"
         return 1
     fi
     
     # Check if gpt4free server is running
     if ! curl -s "$base_url/v1/models" > /dev/null; then
-        echo "Error: Cannot connect to gpt4free server at $base_url"
-        echo "Make sure the server is running and accessible"
+        echo -e "${RED}Error:${NC} Cannot connect to gpt4free server at $base_url"
+        echo -e "Make sure the server is running and accessible"
         return 1
     fi
     
@@ -213,9 +223,20 @@ tptg() {
         # Use both clear command and ANSI escape sequence for more thorough clearing
         clear
         printf "\033c"  # ANSI escape sequence to reset terminal
-        echo "===== GPT4Free Interface ====="
-        echo "Query: $prompt"
-        echo "==============================="
+        
+        # Use simpler box drawing with fixed width
+        echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+        echo -e "${BOLD}${BLUE}|       ${CYAN}GPT4Free Interface${BLUE}             |${NC}"
+        echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+        
+        # Simplify query display to avoid parameter expansion issues
+        local display_prompt="$prompt"
+        if [[ ${#display_prompt} -gt 25 ]]; then
+            display_prompt="${display_prompt:0:25}..."
+        fi
+        echo -e "${BOLD}${BLUE}| ${YELLOW}Query:${NC} $display_prompt${BLUE} |${NC}"
+        
+        echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
         echo ""
     }
     
@@ -224,32 +245,37 @@ tptg() {
         clear_and_show_header
         
         # Get available providers
-        echo "Fetching available providers..."
+        echo -e "${CYAN}Fetching available providers...${NC}"
         local providers=$(curl -s -X 'GET' "$base_url/v1/models" \
             -H 'accept: application/json' | jq -r '.data[] | select(.provider == true) | .id')
         
         if [[ -z "$providers" ]]; then
-            echo "Error: No providers found"
+            echo -e "${RED}Error:${NC} No providers found"
             return 1
         fi
         
         # Create a numbered menu for provider selection
-        echo "Available providers:"
+        echo -e "${BOLD}${GREEN}Available providers:${NC}"
         local i=1
         local provider_array=()
         while read -r p; do
-            echo "  $i) $p"
+            # Use different colors for alternating rows
+            if (( i % 2 == 0 )); then
+                echo -e "  ${CYAN}$i)${NC} $p"
+            else
+                echo -e "  ${PURPLE}$i)${NC} $p"
+            fi
             provider_array+=("$p")
             ((i++))
         done <<< "$providers"
         
         # Get user selection
-        echo -n "Select provider (1-$((i-1))): "
+        echo -e -n "${YELLOW}Select provider (1-$((i-1))): ${NC}"
         read selection
         
         # Validate selection
         if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
-            echo "Error: Invalid selection"
+            echo -e "${RED}Error:${NC} Invalid selection"
             sleep 1  # Brief pause to show error
             continue
         fi
@@ -259,38 +285,43 @@ tptg() {
         
         # Clear screen before showing models
         clear_and_show_header
-        echo "Selected provider: '$provider'"
+        echo -e "${BOLD}Selected provider:${NC} ${GREEN}'$provider'${NC}"
         
         # Get available models for the selected provider
-        echo "Fetching models for provider '$provider'..."
+        echo -e "${CYAN}Fetching models for provider '$provider'...${NC}"
         local models=$(curl -s -X 'GET' "$base_url/api/$provider/models" \
             -H 'accept: application/json' | jq -r '.data[] | .id')
         
         if [[ -z "$models" ]]; then
-            echo "Error: No models found for provider '$provider'"
-            echo "Please select a different provider."
+            echo -e "${RED}Error:${NC} No models found for provider '$provider'"
+            echo -e "Please select a different provider."
             sleep 2  # Pause to show error message
             continue
         fi
         
         # Create a numbered menu for model selection with back option
-        echo "Available models for $provider:"
-        echo "  0) Go back to provider selection"
+        echo -e "${BOLD}${GREEN}Available models for $provider:${NC}"
+        echo -e "  ${BOLD}${BLUE}0)${NC} ${BOLD}Go back to provider selection${NC}"
         local i=1
         local model_array=()
         while read -r m; do
-            echo "  $i) $m"
+            # Use different colors for alternating rows
+            if (( i % 2 == 0 )); then
+                echo -e "  ${CYAN}$i)${NC} $m"
+            else
+                echo -e "  ${PURPLE}$i)${NC} $m"
+            fi
             model_array+=("$m")
             ((i++))
         done <<< "$models"
         
         # Get user selection
-        echo -n "Select model (0 to go back, 1-$((i-1)) to select): "
+        echo -e -n "${YELLOW}Select model (0 to go back, 1-$((i-1)) to select): ${NC}"
         read selection
         
         # Check if user wants to go back
         if [[ "$selection" == "0" ]]; then
-            echo "Going back to provider selection..."
+            echo -e "${BLUE}Going back to provider selection...${NC}"
             sleep 1.5  # Longer pause before clearing
             # Force a more thorough clearing
             clear
@@ -300,7 +331,7 @@ tptg() {
         
         # Validate selection
         if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
-            echo "Error: Invalid selection"
+            echo -e "${RED}Error:${NC} Invalid selection"
             sleep 1  # Brief pause to show error
             continue
         fi
@@ -310,14 +341,17 @@ tptg() {
         
         # Clear screen before final output
         clear_and_show_header
-        echo "Selected provider: '$provider'"
-        echo "Selected model: '$model'"
+        echo -e "${BOLD}Selected provider:${NC} ${GREEN}'$provider'${NC}"
+        echo -e "${BOLD}Selected model:${NC} ${GREEN}'$model'${NC}"
         break
     done
     
     # Run tgpt with the selected provider and model
-    echo "Using provider: $provider, model: $model"
-    echo "==============================="
+    echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+    echo -e "${BOLD}${BLUE}| ${CYAN}Using provider:${NC} ${GREEN}$provider${NC}"
+    echo -e "${BOLD}${BLUE}| ${CYAN}Using model:${NC} ${GREEN}$model${NC}"
+    echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+    echo -e "${YELLOW}Sending request...${NC}"
     tgpt --provider openai \
          --url "$base_url/api/$provider/chat/completions" \
          --model "$model" \
