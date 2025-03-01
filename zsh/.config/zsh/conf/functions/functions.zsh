@@ -727,9 +727,19 @@ tptn() {
 
 # Generic template function for tgpt commands
 _xtgpt() {
-    # Display help message if --help or -h is passed
+    local cmd="$1"
+    local template=""
+    local use_tor=false
+    local model=""
+    local provider=""
+    local provider_arg=""
+    local model_arg=""
+    
+    shift  # Remove the command name from arguments
+
+    # Handle help first
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        echo "Usage: xtptp/xtptd/xtptc/xtpto <template> [--tor] [model]"
+        echo "Usage: xtptp/xtptd/xtptc/xtpto/xtptn/xtptg <template> [--tor] [model]"
         echo ""
         echo "Replace placeholders in the template with input and execute the command."
         echo ""
@@ -739,36 +749,21 @@ _xtgpt() {
         echo "  [model]       For xtptd: model number (1-5) or name (gpt/llama/claude/o3/mistral)"
         echo "                For xtptc: model number (1-3) or name (llama/deepseek/llama70b)"
         echo "                For xtpto: model number (1-5) or name (deepseek/qwen3b/qwen7b/llama3/gemma)"
+        echo "                For xtptn: Use -ml <modelname> to specify model"
+        echo "                For xtptg: Use -pr <provider> -ml <model> to specify provider and model"
         echo ""
         echo "Example:"
         echo "  echo \"Vscode\" | xtptd \"what is {}, can it play music?\" --tor claude"
         echo "  echo \"Python\" | xtptc \"explain {} in simple terms\" --tor llama70b"
         echo "  echo \"Docker\" | xtpto \"how to optimize {} containers?\" llama3"
+        echo "  echo \"AI\" | xtptn --tor -ml deepseek-r1:14b 'explain {}'"
+        echo "  echo \"AI\" | xtptg \"explain {}\" -pr DDG -ml o3-mini"
+        echo "  echo \"AI\" | xtptg \"explain {}\" -ml deepseek-r1:14b"
         echo ""
         return 0
     fi
-
-    local cmd="$1"
-    local template=""
-    shift  # Remove the command name from arguments
-
-    # Check if template is provided
-    if [[ $# -eq 0 || "$1" == -* ]]; then
-        echo "Error: Missing template argument"
-        echo "Usage: ${cmd} <template> [options]"
-        return 1
-    fi
-    template="$1"
-    shift  # Remove template from arguments
-
-    # Read ALL input at once instead of line-by-line
-    local input
-    input=$(cat)
-
-    # Handle --tor option for supported commands
-    local use_tor=false
-    local model=""
     
+    # Parse all arguments first
     while [[ $# -gt 0 ]]; do
         case "$1" in
             "--tor")
@@ -779,14 +774,54 @@ _xtgpt() {
                 fi
                 shift
                 ;;
-            *)
+            "-pr")
+                shift
+                if [[ -z "$1" || "$1" == -* ]]; then
+                    echo "Error: -pr requires a provider ID argument"
+                    return 1
+                fi
+                provider="$1"
+                provider_arg="-pr"
+                shift
+                ;;
+            "-ml")
+                shift
+                if [[ -z "$1" || "$1" == -* ]]; then
+                    echo "Error: -ml requires a model ID argument"
+                    return 1
+                fi
                 model="$1"
+                model_arg="-ml"
+                shift
+                ;;
+            *)
+                # If template isn't set yet, this is the template
+                if [[ -z "$template" ]]; then
+                    template="$1"
+                else
+                    # Otherwise it's a model
+                    model="$1"
+                fi
                 shift
                 ;;
         esac
     done
-
-    # Build the command with appropriate options
+    
+    # Check if template is provided
+    if [[ -z "$template" ]]; then
+        echo "Error: Missing template argument"
+        echo "Usage: ${cmd} <template> [options]"
+        return 1
+    fi
+    
+    # Read ALL input at once
+    local input
+    input=$(cat)
+    
+    # Format the query with the input
+    local formatted_query="${template//\{\}/$input}"
+    
+    # Handle different command cases
     if [[ "$cmd" == "tptn" ]]; then
         # Special handling for tptn's required -ml flag
         if [[ -z "$model" ]]; then
@@ -795,51 +830,58 @@ _xtgpt() {
             return 1
         fi
         if $use_tor; then
-            $cmd --tor -ml "$model" "${template//\{\}/$input}"
+            $cmd --tor -ml "$model" "$formatted_query"
         else
-            $cmd -ml "$model" "${template//\{\}/$input}"
+            $cmd -ml "$model" "$formatted_query"
         fi
     elif [[ "$cmd" == "tptg" ]]; then
-        # Special handling for tptg which uses an interactive menu
-        if $use_tor; then
-            echo "Warning: --tor option is not supported for tptg. Ignoring."
+        # Special handling for tptg with provider and model arguments
+        if [[ -n "$provider" && -n "$model" ]]; then
+            # Direct command execution with specified provider and model
+            if $use_tor; then
+                echo "Warning: --tor option is not supported for tptg. Ignoring."
+            fi
+            
+            $cmd $provider_arg "$provider" $model_arg "$model" "$formatted_query"
+        else
+            # Interactive mode for tptg (existing behavior)
+            if $use_tor; then
+                echo "Warning: --tor option is not supported for tptg. Ignoring."
+            fi
+            
+            if [[ -n "$model" && -z "$provider" ]]; then
+                echo "Warning: For tptg, both -pr and -ml must be specified together"
+                echo "Using interactive mode instead..."
+            fi
+            
+            # Save the current stdin
+            exec {STDIN_COPY}<&0
+            
+            # Redirect stdin from the terminal
+            exec < /dev/tty
+            
+            echo "Your query: $formatted_query"
+            echo "Please make your selections in the interactive menu:"
+            echo ""
+            
+            # Run the command with the formatted query while stdin is connected to terminal
+            $cmd "$formatted_query"
+            
+            # Restore original stdin
+            exec 0<&${STDIN_COPY} {STDIN_COPY}<&-
         fi
-        
-        if [[ -n "$model" ]]; then
-            echo "Warning: Model selection ('$model') is not supported for tptg. Ignoring."
-            echo "tptg uses an interactive menu for provider/model selection."
-        fi
-        
-        # Format the query with the input
-        local formatted_query="${template//\{\}/$input}"
-        
-        # Save the current stdin
-        exec {STDIN_COPY}<&0
-        
-        # Redirect stdin from the terminal
-        exec < /dev/tty
-        
-        echo "Your query: $formatted_query"
-        echo "Please make your selections in the interactive menu:"
-        echo ""
-        
-        # Run the command with the formatted query while stdin is connected to terminal
-        $cmd "$formatted_query"
-        
-        # Restore original stdin
-        exec 0<&${STDIN_COPY} {STDIN_COPY}<&-
     else
         if [[ -n "$model" ]]; then
             if $use_tor; then
-                $cmd --tor "$model" "${template//\{\}/$input}"
+                $cmd --tor "$model" "$formatted_query"
             else
-                $cmd "$model" "${template//\{\}/$input}"
+                $cmd "$model" "$formatted_query"
             fi
         else
             if $use_tor; then
-                $cmd --tor "${template//\{\}/$input}"
+                $cmd --tor "$formatted_query"
             else
-                $cmd "${template//\{\}/$input}"
+                $cmd "$formatted_query"
             fi
         fi
     fi
