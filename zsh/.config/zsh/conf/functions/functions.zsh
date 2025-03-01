@@ -164,6 +164,104 @@ mkd() {
 #####               AI Tools & tgpt                #####
 ########################################################
 
+## tgpt with gpt4free
+tptg() {
+    local prompt=""
+    local provider=""
+    local model=""
+    local base_url="http://localhost:1337"
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "${1:-}" in
+            "--help"|"-h")
+                echo "Usage: tptg [options] <query>"
+                echo ""
+                echo "Options:"
+                echo "  --help, -h   : Show this help message"
+                echo ""
+                echo "Example:"
+                echo "  tptg \"What is quantum computing?\""
+                echo ""
+                echo "Note: Requires a local gpt4free instance running at http://localhost:1337"
+                return 0
+                ;;
+            *)
+                # If no option flag, treat as prompt
+                prompt="$*"
+                break
+                ;;
+        esac
+    done
+    
+    # Check if prompt is provided
+    if [[ -z "$prompt" ]]; then
+        echo "Error: No prompt provided"
+        echo "Usage: tptg <query>"
+        return 1
+    fi
+    
+    # Check if gpt4free server is running
+    if ! curl -s "$base_url/v1/models" > /dev/null; then
+        echo "Error: Cannot connect to gpt4free server at $base_url"
+        echo "Make sure the server is running and accessible"
+        return 1
+    fi
+    
+    # Get available providers
+    echo "Fetching available providers..."
+    local providers=$(curl -s -X 'GET' "$base_url/v1/models" \
+        -H 'accept: application/json' | jq -r '.data[] | select(.provider == true) | .id')
+    
+    if [[ -z "$providers" ]]; then
+        echo "Error: No providers found"
+        return 1
+    fi
+    
+    # Provider selection loop
+    while true; do
+        # Let user select a provider using fzf
+        echo "Select a provider (ESC to cancel):"
+        provider=$(echo "$providers" | fzf --height=10)
+        
+        if [[ -z "$provider" ]]; then
+            echo "Provider selection cancelled"
+            return 1
+        fi
+        
+        # Get available models for the selected provider
+        echo "Fetching models for provider '$provider'..."
+        local models=$(curl -s -X 'GET' "$base_url/api/$provider/models" \
+            -H 'accept: application/json' | jq -r '.data[] | .id')
+        
+        if [[ -z "$models" ]]; then
+            echo "Error: No models found for provider '$provider'"
+            continue
+        fi
+        
+        # Let user select a model using fzf with a back option
+        echo "Select a model (ESC to cancel, CTRL-B to go back to provider selection):"
+        model=$(echo -e "BACK_TO_PROVIDER\n$models" | fzf --height=10 --bind "ctrl-b:become(echo BACK_TO_PROVIDER)")
+        
+        if [[ -z "$model" ]]; then
+            echo "Model selection cancelled"
+            return 1
+        elif [[ "$model" == "BACK_TO_PROVIDER" ]]; then
+            echo "Going back to provider selection..."
+            continue
+        else
+            break
+        fi
+    done
+    
+    # Run tgpt with the selected provider and model
+    echo "Using provider: $provider, model: $model"
+    tgpt --provider openai \
+         --url "$base_url/api/$provider/chat/completions" \
+         --model "$model" \
+         "$prompt"
+}
+
 ## tgpt with phind
 tptp() {
     local use_tor=false
