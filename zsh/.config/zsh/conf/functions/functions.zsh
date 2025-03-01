@@ -584,79 +584,6 @@ tptc() {
     fi
 }
 
-## tgpt with local Ollama
-tpto() {
-    local model="llama3.2:latest"
-    
-    # Parse arguments
-    while [[ $# -gt 0 ]]; do
-        case "${1:-}" in
-            "deepseek"|"1")
-                model="deepseek-r1:1.5b"
-                shift
-                ;;
-            "qwen3b"|"2")
-                model="qwen2.5-coder:3b"
-                shift
-                ;;
-            "qwen7b"|"3")
-                model="qwen2.5-coder:7b"
-                shift
-                ;;
-            "llama3"|"4")
-                model="llama3.2:latest"
-                shift
-                ;;
-            "gemma"|"5")
-                model="gemma2:2b"
-                shift
-                ;;
-            "--help"|"-h")
-                echo "Usage: tpto [model] <query>"
-                echo "Available models:"
-                echo "  deepseek, 1 : deepseek-r1:1.5b"
-                echo "  qwen3b, 2   : qwen2.5-coder:3b"
-                echo "  qwen7b, 3   : qwen2.5-coder:7b"
-                echo "  llama3, 4   : llama3.2:latest"
-                echo "  gemma, 5    : gemma2:2b"
-                echo "Default: llama3.2:latest"
-                echo ""
-                echo "Note: Requires Ollama server running and model downloaded locally."
-                echo "      Run 'ollama serve' and 'ollama pull <model>' if needed."
-                return 0
-                ;;
-            *)
-                break
-                ;;
-        esac
-    done
-
-    # Check Ollama installation
-    if ! command -v ollama >/dev/null 2>&1; then
-        echo "Error: Ollama not found. Install from https://ollama.ai/download"
-        return 1
-    fi
-
-    # Check if Ollama server is running
-    if ! ollama list >/dev/null 2>&1; then
-        echo "Error: Ollama server not running. Start with: ollama serve"
-        echo "Note: Keep the serve session running in another terminal"
-        return 1
-    fi
-
-    # Verify model exists locally
-    local model_exists=$(ollama list | awk '{print $1}' | grep -w "${model%%:*}")
-    if [[ -z "$model_exists" ]]; then
-        echo "Error: Model '${model%%:*}' not found in local Ollama library"
-        echo "Available models:"
-        ollama list
-        echo "\nInstall with: ollama pull ${model%%:*}"
-        return 1
-    fi
-
-    tgpt --provider ollama --model "$model" "$@"
-}
-
 ## tgpt with nazOllama_colab_API
 tptn() {
     local model=""
@@ -739,24 +666,22 @@ _xtgpt() {
 
     # Handle help first
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        echo "Usage: xtptp/xtptd/xtptc/xtpto/xtptn/xtptg <template> [--tor] [model]"
+        echo "Usage: xtptp/xtptd/xtptc/xtptn/xtptg <template> [--tor] [model]"
         echo ""
         echo "Replace placeholders in the template with input and execute the command."
         echo ""
         echo "Arguments:"
         echo "  <template>    A text template with placeholders (e.g. 'hello {}, how are you?')"
-        echo "  --tor        Route traffic through Tor network (not for xtpto)"
+        echo "  --tor        Route traffic through Tor network"
         echo "  [model]       For xtptd: model number (1-5) or name (gpt/llama/claude/o3/mistral)"
         echo "                For xtptc: model number (1-3) or name (llama/deepseek/llama70b)"
-        echo "                For xtpto: model number (1-5) or name (deepseek/qwen3b/qwen7b/llama3/gemma)"
         echo "                For xtptn: Use -ml <modelname> to specify model"
         echo "                For xtptg: Use -pr <provider> -ml <model> to specify provider and model"
         echo ""
         echo "Example:"
         echo "  echo \"Vscode\" | xtptd \"what is {}, can it play music?\" --tor claude"
         echo "  echo \"Python\" | xtptc \"explain {} in simple terms\" --tor llama70b"
-        echo "  echo \"Docker\" | xtpto \"how to optimize {} containers?\" llama3"
-        echo "  echo \"AI\" | xtptn --tor -ml deepseek-r1:14b 'explain {}'"
+        echo "  echo \"Docker\" | xtptn --tor -ml deepseek-r1:14b 'how to optimize {} containers?'"
         echo "  echo \"AI\" | xtptg \"explain {}\" -pr DDG -ml o3-mini"
         echo "  echo \"AI\" | xtptg \"explain {}\" -ml deepseek-r1:14b"
         echo ""
@@ -767,11 +692,7 @@ _xtgpt() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             "--tor")
-                if [[ "$cmd" != "tpto" ]]; then
-                    use_tor=true
-                else
-                    echo "Warning: --tor option not supported for xtpto (local Ollama)"
-                fi
+                use_tor=true
                 shift
                 ;;
             "-pr")
@@ -891,7 +812,6 @@ _xtgpt() {
 xtptc() { _xtgpt "tptc" "$@" }
 xtptd() { _xtgpt "tptd" "$@" }
 xtptp() { _xtgpt "tptp" "$@" }
-xtpto() { _xtgpt "tpto" "$@" }
 xtptn() { _xtgpt "tptn" "$@" }
 xtptg() { _xtgpt "tptg" "$@" }
 
