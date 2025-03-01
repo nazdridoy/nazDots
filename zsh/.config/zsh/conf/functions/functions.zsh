@@ -182,6 +182,25 @@ tptg() {
     local BOLD='\033[1m'
     local NC='\033[0m' # No Color
     
+    # Check for help flag first (special case)
+    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+        echo -e "${BOLD}Usage:${NC} tptg [options] <query>"
+        echo ""
+        echo -e "${BOLD}Options:${NC}"
+        echo -e "  -pr <provider_id> : Specify provider ID directly"
+        echo -e "  -ml <model_id>    : Specify model ID directly"
+        echo -e "  --help, -h        : Show this help message"
+        echo ""
+        echo -e "${BOLD}Example:${NC}"
+        echo -e "  tptg \"What is quantum computing?\""
+        echo -e "  tptg -pr DDG -ml o3-mini \"What is quantum computing?\""
+        echo ""
+        echo -e "${YELLOW}Note:${NC}"
+        echo -e "  1. The prompt must be the last argument"
+        echo -e "  2. Requires a local gpt4free instance running at http://localhost:1337"
+        return 0
+    fi
+    
     # Parse arguments - options must come before the prompt
     while [[ $# -gt 1 ]]; do
         case "${1:-}" in
@@ -202,23 +221,6 @@ tptg() {
                 fi
                 model="$1"
                 shift
-                ;;
-            "--help"|"-h")
-                echo -e "${BOLD}Usage:${NC} tptg [options] <query>"
-                echo ""
-                echo -e "${BOLD}Options:${NC}"
-                echo -e "  -pr <provider_id> : Specify provider ID directly"
-                echo -e "  -ml <model_id>    : Specify model ID directly"
-                echo -e "  --help, -h        : Show this help message"
-                echo ""
-                echo -e "${BOLD}Example:${NC}"
-                echo -e "  tptg \"What is quantum computing?\""
-                echo -e "  tptg -pr DDG -ml o3-mini \"What is quantum computing?\""
-                echo ""
-                echo -e "${YELLOW}Note:${NC}"
-                echo -e "  1. The prompt must be the last argument"
-                echo -e "  2. Requires a local gpt4free instance running at http://localhost:1337"
-                return 0
                 ;;
             *)
                 echo -e "${RED}Error:${NC} Invalid option '$1'"
