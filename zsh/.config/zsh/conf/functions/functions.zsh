@@ -170,6 +170,7 @@ tptg() {
     local provider=""
     local model=""
     local base_url="http://localhost:1337"
+    local skip_interactive=false
     
     # Define color codes
     local BLUE='\033[0;34m'
@@ -184,14 +185,35 @@ tptg() {
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "${1:-}" in
+            "-pr")
+                shift
+                if [[ -z "$1" || "$1" == -* ]]; then
+                    echo -e "${RED}Error:${NC} -pr requires a provider ID argument"
+                    return 1
+                fi
+                provider="$1"
+                shift
+                ;;
+            "-ml")
+                shift
+                if [[ -z "$1" || "$1" == -* ]]; then
+                    echo -e "${RED}Error:${NC} -ml requires a model ID argument"
+                    return 1
+                fi
+                model="$1"
+                shift
+                ;;
             "--help"|"-h")
                 echo -e "${BOLD}Usage:${NC} tptg [options] <query>"
                 echo ""
                 echo -e "${BOLD}Options:${NC}"
-                echo -e "  --help, -h   : Show this help message"
+                echo -e "  -pr <provider_id> : Specify provider ID directly"
+                echo -e "  -ml <model_id>    : Specify model ID directly"
+                echo -e "  --help, -h        : Show this help message"
                 echo ""
                 echo -e "${BOLD}Example:${NC}"
                 echo -e "  tptg \"What is quantum computing?\""
+                echo -e "  tptg -pr DDG -ml o3-mini \"What is quantum computing?\""
                 echo ""
                 echo -e "${YELLOW}Note:${NC} Requires a local gpt4free instance running at http://localhost:1337"
                 return 0
@@ -203,6 +225,11 @@ tptg() {
                 ;;
         esac
     done
+    
+    # Check if both provider and model are provided to skip interactive selection
+    if [[ -n "$provider" && -n "$model" ]]; then
+        skip_interactive=true
+    fi
     
     # Check if prompt is provided
     if [[ -z "$prompt" ]]; then
@@ -240,115 +267,123 @@ tptg() {
         echo ""
     }
     
-    # Provider selection loop
-    while true; do
-        clear_and_show_header
-        
-        # Get available providers
-        echo -e "${CYAN}Fetching available providers...${NC}"
-        local providers=$(curl -s -X 'GET' "$base_url/v1/models" \
-            -H 'accept: application/json' | jq -r '.data[] | select(.provider == true) | .id')
-        
-        if [[ -z "$providers" ]]; then
-            echo -e "${RED}Error:${NC} No providers found"
-            return 1
-        fi
-        
-        # Create a numbered menu for provider selection
-        echo -e "${BOLD}${GREEN}Available providers:${NC}"
-        echo ""  # Add spacing before provider list
-        local i=1
-        local provider_array=()
-        while read -r p; do
-            # Use different colors for alternating rows
-            if (( i % 2 == 0 )); then
-                echo -e "  ${CYAN}$i)${NC} $p"
-            else
-                echo -e "  ${PURPLE}$i)${NC} $p"
+    # Skip interactive selection if provider and model are specified
+    if ! $skip_interactive; then
+        # Provider selection loop
+        while true; do
+            clear_and_show_header
+            
+            # Get available providers
+            echo -e "${CYAN}Fetching available providers...${NC}"
+            local providers=$(curl -s -X 'GET' "$base_url/v1/models" \
+                -H 'accept: application/json' | jq -r '.data[] | select(.provider == true) | .id')
+            
+            if [[ -z "$providers" ]]; then
+                echo -e "${RED}Error:${NC} No providers found"
+                return 1
             fi
-            provider_array+=("$p")
-            ((i++))
-        done <<< "$providers"
-        echo ""  # Add spacing after provider list
-        
-        # Get user selection
-        echo -e -n "${YELLOW}Select provider (1-$((i-1))): ${NC}"
-        read selection
-        
-        # Validate selection
-        if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
-            echo -e "${RED}Error:${NC} Invalid selection"
-            sleep 1  # Brief pause to show error
-            continue
-        fi
-        
-        # Arrays in zsh are 1-indexed, adjust the index
-        provider="${provider_array[$selection]}"
-        
-        # Clear screen before showing models
-        clear_and_show_header
-        echo -e "${BOLD}Selected provider:${NC} ${GREEN}'$provider'${NC}"
-        
-        # Get available models for the selected provider
-        echo -e "${CYAN}Fetching models for provider '$provider'...${NC}"
-        local models=$(curl -s -X 'GET' "$base_url/api/$provider/models" \
-            -H 'accept: application/json' | jq -r '.data[] | .id')
-        
-        if [[ -z "$models" ]]; then
-            echo -e "${RED}Error:${NC} No models found for provider '$provider'"
-            echo -e "Please select a different provider."
-            sleep 2  # Pause to show error message
-            continue
-        fi
-        
-        # Create a numbered menu for model selection with back option
-        echo -e "${BOLD}${GREEN}Available models for $provider:${NC}"
-        echo ""  # Add spacing before the back option
-        echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
-        echo ""  # Add spacing to separate back option from models
-        local i=1
-        local model_array=()
-        while read -r m; do
-            # Use different colors for alternating rows
-            if (( i % 2 == 0 )); then
-                echo -e "  ${CYAN}$i)${NC} $m"
-            else
-                echo -e "  ${PURPLE}$i)${NC} $m"
+            
+            # Create a numbered menu for provider selection
+            echo -e "${BOLD}${GREEN}Available providers:${NC}"
+            echo ""  # Add spacing before provider list
+            local i=1
+            local provider_array=()
+            while read -r p; do
+                # Use different colors for alternating rows
+                if (( i % 2 == 0 )); then
+                    echo -e "  ${CYAN}$i)${NC} $p"
+                else
+                    echo -e "  ${PURPLE}$i)${NC} $p"
+                fi
+                provider_array+=("$p")
+                ((i++))
+            done <<< "$providers"
+            echo ""  # Add spacing after provider list
+            
+            # Get user selection
+            echo -e -n "${YELLOW}Select provider (1-$((i-1))): ${NC}"
+            read selection
+            
+            # Validate selection
+            if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
+                echo -e "${RED}Error:${NC} Invalid selection"
+                sleep 1  # Brief pause to show error
+                continue
             fi
-            model_array+=("$m")
-            ((i++))
-        done <<< "$models"
-        
-        # Get user selection
-        echo -e -n "${YELLOW}Select model (0 to go back, 1-$((i-1)) to select): ${NC}"
-        read selection
-        
-        # Check if user wants to go back
-        if [[ "$selection" == "0" ]]; then
-            echo -e "${BLUE}Going back to provider selection...${NC}"
-            sleep 1.5  # Longer pause before clearing
-            # Force a more thorough clearing
-            clear
-            printf "\033c"
-            continue
-        fi
-        
-        # Validate selection
-        if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
-            echo -e "${RED}Error:${NC} Invalid selection"
-            sleep 1  # Brief pause to show error
-            continue
-        fi
-        
-        # Arrays in zsh are 1-indexed, adjust the index
-        model="${model_array[$selection]}"
-        
-        # Clear screen before final output
+            
+            # Arrays in zsh are 1-indexed, adjust the index
+            provider="${provider_array[$selection]}"
+            
+            # Clear screen before showing models
+            clear_and_show_header
+            echo -e "${BOLD}Selected provider:${NC} ${GREEN}'$provider'${NC}"
+            
+            # Get available models for the selected provider
+            echo -e "${CYAN}Fetching models for provider '$provider'...${NC}"
+            local models=$(curl -s -X 'GET' "$base_url/api/$provider/models" \
+                -H 'accept: application/json' | jq -r '.data[] | .id')
+            
+            if [[ -z "$models" ]]; then
+                echo -e "${RED}Error:${NC} No models found for provider '$provider'"
+                echo -e "Please select a different provider."
+                sleep 2  # Pause to show error message
+                continue
+            fi
+            
+            # Create a numbered menu for model selection with back option
+            echo -e "${BOLD}${GREEN}Available models for $provider:${NC}"
+            echo ""  # Add spacing before the back option
+            echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
+            echo ""  # Add spacing to separate back option from models
+            local i=1
+            local model_array=()
+            while read -r m; do
+                # Use different colors for alternating rows
+                if (( i % 2 == 0 )); then
+                    echo -e "  ${CYAN}$i)${NC} $m"
+                else
+                    echo -e "  ${PURPLE}$i)${NC} $m"
+                fi
+                model_array+=("$m")
+                ((i++))
+            done <<< "$models"
+            
+            # Get user selection
+            echo -e -n "${YELLOW}Select model (0 to go back, 1-$((i-1)) to select): ${NC}"
+            read selection
+            
+            # Check if user wants to go back
+            if [[ "$selection" == "0" ]]; then
+                echo -e "${BLUE}Going back to provider selection...${NC}"
+                sleep 1.5  # Longer pause before clearing
+                # Force a more thorough clearing
+                clear
+                printf "\033c"
+                continue
+            fi
+            
+            # Validate selection
+            if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
+                echo -e "${RED}Error:${NC} Invalid selection"
+                sleep 1  # Brief pause to show error
+                continue
+            fi
+            
+            # Arrays in zsh are 1-indexed, adjust the index
+            model="${model_array[$selection]}"
+            
+            # Clear screen before final output
+            clear_and_show_header
+            echo -e "${BOLD}Selected provider:${NC} ${GREEN}'$provider'${NC}"
+            echo -e "${BOLD}Selected model:${NC} ${GREEN}'$model'${NC}"
+            break
+        done
+    else
+        # Using directly specified provider and model
         clear_and_show_header
-        echo -e "${BOLD}Selected provider:${NC} ${GREEN}'$provider'${NC}"
-        echo -e "${BOLD}Selected model:${NC} ${GREEN}'$model'${NC}"
-        break
-    done
+        echo -e "${BOLD}Using specified provider:${NC} ${GREEN}'$provider'${NC}"
+        echo -e "${BOLD}Using specified model:${NC} ${GREEN}'$model'${NC}"
+    fi
     
     # Run tgpt with the selected provider and model
     echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
