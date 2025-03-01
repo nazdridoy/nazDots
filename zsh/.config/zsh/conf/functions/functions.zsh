@@ -241,6 +241,11 @@ tptg() {
     # Check if both provider and model are provided to skip interactive selection
     if [[ -n "$provider" && -n "$model" ]]; then
         skip_interactive=true
+    elif [[ -n "$provider" || -n "$model" ]]; then
+        # Error if only one of -pr or -ml is provided
+        echo -e "${RED}Error:${NC} Both -pr and -ml must be specified together"
+        echo -e "Example: tptg -pr DDG -ml o3-mini \"What is quantum computing?\""
+        return 1
     fi
     
     # Check if prompt is provided (should be redundant now)
