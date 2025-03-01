@@ -182,8 +182,8 @@ tptg() {
     local BOLD='\033[1m'
     local NC='\033[0m' # No Color
     
-    # Parse arguments
-    while [[ $# -gt 0 ]]; do
+    # Parse arguments - options must come before the prompt
+    while [[ $# -gt 1 ]]; do
         case "${1:-}" in
             "-pr")
                 shift
@@ -215,26 +215,38 @@ tptg() {
                 echo -e "  tptg \"What is quantum computing?\""
                 echo -e "  tptg -pr DDG -ml o3-mini \"What is quantum computing?\""
                 echo ""
-                echo -e "${YELLOW}Note:${NC} Requires a local gpt4free instance running at http://localhost:1337"
+                echo -e "${YELLOW}Note:${NC}"
+                echo -e "  1. The prompt must be the last argument"
+                echo -e "  2. Requires a local gpt4free instance running at http://localhost:1337"
                 return 0
                 ;;
             *)
-                # If no option flag, treat as prompt
-                prompt="$*"
-                break
+                echo -e "${RED}Error:${NC} Invalid option '$1'"
+                echo -e "Usage: tptg [options] <query>"
+                echo -e "Run 'tptg --help' for more information"
+                return 1
                 ;;
         esac
     done
+    
+    # The last argument is the prompt
+    if [[ $# -eq 1 ]]; then
+        prompt="$1"
+    else
+        echo -e "${RED}Error:${NC} No prompt provided"
+        echo -e "Usage: tptg [options] <query>"
+        return 1
+    fi
     
     # Check if both provider and model are provided to skip interactive selection
     if [[ -n "$provider" && -n "$model" ]]; then
         skip_interactive=true
     fi
     
-    # Check if prompt is provided
+    # Check if prompt is provided (should be redundant now)
     if [[ -z "$prompt" ]]; then
         echo -e "${RED}Error:${NC} No prompt provided"
-        echo -e "Usage: tptg <query>"
+        echo -e "Usage: tptg [options] <query>"
         return 1
     fi
     
