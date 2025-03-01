@@ -860,31 +860,23 @@ gitcommsg() {
     local chunk_mode=false
     local recursive_chunk=false
     local chunk_size=200
-    local use_offline=false
     local use_tor=false
     local use_nazapi=false
     local nazapi_model=""
-
-    # Check if --offline is used but not as first argument
-    if [[ " $@ " =~ " --offline " && "$1" != "--offline" ]]; then
-        echo "Error: --offline must be the first argument if using offline mode"
-        return 1
-    fi
 
     # Parse arguments first
     while [[ $# -gt 0 ]]; do
         case $1 in
             --help|-h)
                 # Help message display
-                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [--offline] [-ml MODEL]"
+                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [-ml MODEL]"
                 echo "Generate AI-powered commit messages from staged changes"
                 echo ""
                 echo "Options:"
                 echo "  -m, --message  Additional context or priority message"
                 echo "  -c, --chunk    Process large diffs in chunks (for 429 errors)"
                 echo "  -cc, --chunk-recursive  Recursively chunk large commit messages"
-                echo "  --offline      Use local Ollama model instead of online provider"
-                echo "  --tor         Route traffic through Tor network (not for offline mode)"
+                echo "  --tor         Route traffic through Tor network"
                 echo "  -ml MODEL      Use custom model with nazOllama API (requires tptn)"
                 echo ""
                 echo "Available models:"
@@ -892,26 +884,18 @@ gitcommsg() {
                 echo "    gpt/1, llama/2, claude/3, o3/4, mistral/5"
                 echo "  nazOllama API (-ml):"
                 echo "    Any model supported by tptn (e.g. deepseek-r1:14b)"
-                echo "  Offline (with --offline):"
-                echo "    deepseek/1, qwen3b/2, qwen7b/3, llama3/4, gemma/5"
                 echo ""
                 echo "Examples:"
                 echo "  gitcommsg                        # uses o3 (default)"
                 echo "  gitcommsg llama                  # uses llama model"
                 echo "  gitcommsg -m \"important fix\"     # adds context"
                 echo "  gitcommsg claude -m \"refactor\"   # model + context"
-                echo "  gitcommsg --offline llama3 -c    # offline with chunking"
-                echo "  gitcommsg --offline deepseek -m \"security patch\""
                 echo "  gitcommsg -ml deepseek-r1:14b      # uses nazOllama API with specified model"
                 echo "  gitcommsg --tor -ml llama3.2:latest -m \"security fix\""
                 return 0
                 ;;
             --tor)
                 use_tor=true
-                shift
-                ;;
-            --offline)
-                use_offline=true
                 shift
                 ;;
             -m|--message)
@@ -933,11 +917,6 @@ gitcommsg() {
                 shift
                 ;;
             -ml)
-                if $use_offline; then
-                    echo "Error: -ml cannot be used with --offline mode"
-                    return 1
-                fi
-                shift
                 if [[ -z "$1" || "$1" =~ ^- ]]; then
                     echo "Error: -ml requires a model name argument"
                     return 1
@@ -948,38 +927,19 @@ gitcommsg() {
                 ;;
             *)
                 # Validate model argument
-                if $use_offline; then
-                    case "$1" in
-                        deepseek|1|qwen3b|2|qwen7b|3|llama3|4|gemma|5)
-                            model="$1"
-                            shift
-                            ;;
-                        *)
-                            echo "Error: Invalid offline model '$1' (valid: deepseek/1, qwen3b/2, qwen7b/3, llama3/4, gemma/5)"
-                            return 1
-                            ;;
-                    esac
-                else
-                    case "$1" in
-                        gpt|1|llama|2|claude|3|o3|4|mistral|5) 
-                            model="$1"
-                            shift
-                            ;;
-                        *)
-                            echo "Error: Invalid model '$1' (valid: gpt/1, llama/2, claude/3, o3/4, mistral/5)"
-                            return 1
-                            ;;
-                    esac
-                fi
+                case "$1" in
+                    gpt|1|llama|2|claude|3|o3|4|mistral|5) 
+                        model="$1"
+                        shift
+                        ;;
+                    *)
+                        echo "Error: Invalid model '$1' (valid: gpt/1, llama/2, claude/3, o3/4, mistral/5)"
+                        return 1
+                        ;;
+                esac
                 ;;
         esac
     done
-
-    # Check if --tor and --offline are used together
-    if $use_tor && $use_offline; then
-        echo "Error: --tor cannot be used with --offline mode"
-        return 1
-    fi
 
     # Check if in a Git repository
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -1093,9 +1053,7 @@ Git diff to analyze:
         local recursion_depth=0
         local max_recursion=3
         local ai_cmd="tptd"
-        if $use_offline; then
-            ai_cmd="tpto"
-        elif $use_nazapi; then
+        if $use_nazapi; then
             ai_cmd="tptn"
             ai_args=("-ml" "$nazapi_model")
         fi
@@ -1133,7 +1091,7 @@ Diff chunk:\n{}"
                 while true; do
                     local tmpfile=$(mktemp)
                     local cmd_status=0
-                    if $use_tor && ! $use_offline; then
+                    if $use_tor; then
                         if $use_nazapi; then
                             $ai_cmd --tor "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
                         else
@@ -1230,7 +1188,7 @@ Final message:"
 
         echo "\n🎉 Final commit message generation..."
         # Final command execution with tor support
-        if $use_tor && ! $use_offline; then
+        if $use_tor; then
             if $use_nazapi; then
                 $ai_cmd --tor "${ai_args[@]}" "$template" <<< "$diff_input"
             else
