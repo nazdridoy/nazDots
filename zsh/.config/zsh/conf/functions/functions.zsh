@@ -171,7 +171,8 @@ tptg() {
     local model=""
     local base_url="http://localhost:1337"
     local skip_interactive=false
-    local skip_screen_clear=false  # New flag to control screen clearing
+    local skip_screen_clear=false
+    local exporting_enabled=${G4F_EXPORT_ENABLED:-0}  # Check if export is enabled
     
     # Define color codes
     local BLUE='\033[0;34m'
@@ -409,11 +410,13 @@ tptg() {
         echo -e "${BOLD}Using specified model:${NC} ${GREEN}'$model'${NC}"
     fi
     
-    # At the end of the selection process, add these exports:
+    # At the end of the selection process, add conditional exports:
     if [[ -n "$provider" && -n "$model" ]]; then
-        # Export the selected provider and model for other functions to use
-        export G4F_SELECTED_PROVIDER="$provider"
-        export G4F_SELECTED_MODEL="$model"
+        # Only export if called from gitcommsg (flag set)
+        if [[ "$exporting_enabled" == "1" ]]; then
+            export G4F_SELECTED_PROVIDER="$provider"
+            export G4F_SELECTED_MODEL="$model"
+        fi
     fi
     # Run tgpt with the selected provider and model
     echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
@@ -1150,13 +1153,19 @@ Git diff to analyze:
             # Redirect stdin from the terminal
             exec < /dev/tty
             
-            # Run tptg with a simple prompt to make selections - DO NOT redirect output
+            # Enable exporting for the tptg call
+            export G4F_EXPORT_ENABLED=1
+            
+            # Run tptg with a simple prompt to make selections
             echo "Please select a provider and model in the menu that appears:"
             echo "After selection is complete, the commit message generation will continue."
             echo ""
             
             # Run tptg without redirecting its output
             tptg "$temp_prompt"
+            
+            # Disable exporting after the call
+            unset G4F_EXPORT_ENABLED
             
             # Restore original stdin
             exec 0<&${STDIN_COPY} {STDIN_COPY}<&-
