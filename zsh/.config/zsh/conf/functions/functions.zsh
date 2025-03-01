@@ -745,6 +745,35 @@ _xtgpt() {
         else
             $cmd -ml "$model" "${template//\{\}/$input}"
         fi
+    elif [[ "$cmd" == "tptg" ]]; then
+        # Special handling for tptg which uses an interactive menu
+        if $use_tor; then
+            echo "Warning: --tor option is not supported for tptg. Ignoring."
+        fi
+        
+        if [[ -n "$model" ]]; then
+            echo "Warning: Model selection ('$model') is not supported for tptg. Ignoring."
+            echo "tptg uses an interactive menu for provider/model selection."
+        fi
+        
+        # Format the query with the input
+        local formatted_query="${template//\{\}/$input}"
+        
+        # Save the current stdin
+        exec {STDIN_COPY}<&0
+        
+        # Redirect stdin from the terminal
+        exec < /dev/tty
+        
+        echo "Your query: $formatted_query"
+        echo "Please make your selections in the interactive menu:"
+        echo ""
+        
+        # Run the command with the formatted query while stdin is connected to terminal
+        $cmd "$formatted_query"
+        
+        # Restore original stdin
+        exec 0<&${STDIN_COPY} {STDIN_COPY}<&-
     else
         if [[ -n "$model" ]]; then
             if $use_tor; then
@@ -768,6 +797,7 @@ xtptd() { _xtgpt "tptd" "$@" }
 xtptp() { _xtgpt "tptp" "$@" }
 xtpto() { _xtgpt "tpto" "$@" }
 xtptn() { _xtgpt "tptn" "$@" }
+xtptg() { _xtgpt "tptg" "$@" }
 
 setCFenv() {
   # Add timeout handling
