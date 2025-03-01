@@ -256,6 +256,7 @@ tptg() {
         
         # Create a numbered menu for provider selection
         echo -e "${BOLD}${GREEN}Available providers:${NC}"
+        echo ""  # Add spacing before provider list
         local i=1
         local provider_array=()
         while read -r p; do
@@ -268,6 +269,7 @@ tptg() {
             provider_array+=("$p")
             ((i++))
         done <<< "$providers"
+        echo ""  # Add spacing after provider list
         
         # Get user selection
         echo -e -n "${YELLOW}Select provider (1-$((i-1))): ${NC}"
@@ -301,7 +303,9 @@ tptg() {
         
         # Create a numbered menu for model selection with back option
         echo -e "${BOLD}${GREEN}Available models for $provider:${NC}"
-        echo -e "  ${BOLD}${BLUE}0)${NC} ${BOLD}Go back to provider selection${NC}"
+        echo ""  # Add spacing before the back option
+        echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
+        echo ""  # Add spacing to separate back option from models
         local i=1
         local model_array=()
         while read -r m; do
