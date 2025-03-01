@@ -208,26 +208,58 @@ tptg() {
         return 1
     fi
     
-    # Get available providers
-    echo "Fetching available providers..."
-    local providers=$(curl -s -X 'GET' "$base_url/v1/models" \
-        -H 'accept: application/json' | jq -r '.data[] | select(.provider == true) | .id')
-    
-    if [[ -z "$providers" ]]; then
-        echo "Error: No providers found"
-        return 1
-    fi
+    # Function to clear screen and show header
+    clear_and_show_header() {
+        # Use both clear command and ANSI escape sequence for more thorough clearing
+        clear
+        printf "\033c"  # ANSI escape sequence to reset terminal
+        echo "===== GPT4Free Interface ====="
+        echo "Query: $prompt"
+        echo "==============================="
+        echo ""
+    }
     
     # Provider selection loop
     while true; do
-        # Let user select a provider using fzf
-        echo "Select a provider (ESC to cancel):"
-        provider=$(echo "$providers" | fzf --height=10)
+        clear_and_show_header
         
-        if [[ -z "$provider" ]]; then
-            echo "Provider selection cancelled"
+        # Get available providers
+        echo "Fetching available providers..."
+        local providers=$(curl -s -X 'GET' "$base_url/v1/models" \
+            -H 'accept: application/json' | jq -r '.data[] | select(.provider == true) | .id')
+        
+        if [[ -z "$providers" ]]; then
+            echo "Error: No providers found"
             return 1
         fi
+        
+        # Create a numbered menu for provider selection
+        echo "Available providers:"
+        local i=1
+        local provider_array=()
+        while read -r p; do
+            echo "  $i) $p"
+            provider_array+=("$p")
+            ((i++))
+        done <<< "$providers"
+        
+        # Get user selection
+        echo -n "Select provider (1-$((i-1))): "
+        read selection
+        
+        # Validate selection
+        if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
+            echo "Error: Invalid selection"
+            sleep 1  # Brief pause to show error
+            continue
+        fi
+        
+        # Arrays in zsh are 1-indexed, adjust the index
+        provider="${provider_array[$selection]}"
+        
+        # Clear screen before showing models
+        clear_and_show_header
+        echo "Selected provider: '$provider'"
         
         # Get available models for the selected provider
         echo "Fetching models for provider '$provider'..."
@@ -236,26 +268,56 @@ tptg() {
         
         if [[ -z "$models" ]]; then
             echo "Error: No models found for provider '$provider'"
+            echo "Please select a different provider."
+            sleep 2  # Pause to show error message
             continue
         fi
         
-        # Let user select a model using fzf with a back option
-        echo "Select a model (ESC to cancel, CTRL-B to go back to provider selection):"
-        model=$(echo -e "BACK_TO_PROVIDER\n$models" | fzf --height=10 --bind "ctrl-b:become(echo BACK_TO_PROVIDER)")
+        # Create a numbered menu for model selection with back option
+        echo "Available models for $provider:"
+        echo "  0) Go back to provider selection"
+        local i=1
+        local model_array=()
+        while read -r m; do
+            echo "  $i) $m"
+            model_array+=("$m")
+            ((i++))
+        done <<< "$models"
         
-        if [[ -z "$model" ]]; then
-            echo "Model selection cancelled"
-            return 1
-        elif [[ "$model" == "BACK_TO_PROVIDER" ]]; then
+        # Get user selection
+        echo -n "Select model (0 to go back, 1-$((i-1)) to select): "
+        read selection
+        
+        # Check if user wants to go back
+        if [[ "$selection" == "0" ]]; then
             echo "Going back to provider selection..."
+            sleep 1.5  # Longer pause before clearing
+            # Force a more thorough clearing
+            clear
+            printf "\033c"
             continue
-        else
-            break
         fi
+        
+        # Validate selection
+        if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
+            echo "Error: Invalid selection"
+            sleep 1  # Brief pause to show error
+            continue
+        fi
+        
+        # Arrays in zsh are 1-indexed, adjust the index
+        model="${model_array[$selection]}"
+        
+        # Clear screen before final output
+        clear_and_show_header
+        echo "Selected provider: '$provider'"
+        echo "Selected model: '$model'"
+        break
     done
     
     # Run tgpt with the selected provider and model
     echo "Using provider: $provider, model: $model"
+    echo "==============================="
     tgpt --provider openai \
          --url "$base_url/api/$provider/chat/completions" \
          --model "$model" \
