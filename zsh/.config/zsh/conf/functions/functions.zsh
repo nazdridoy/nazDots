@@ -171,6 +171,7 @@ tptg() {
     local model=""
     local base_url="http://localhost:1337"
     local skip_interactive=false
+    local skip_screen_clear=false  # New flag to control screen clearing
     
     # Define color codes
     local BLUE='\033[0;34m'
@@ -243,6 +244,7 @@ tptg() {
     # Check if both provider and model are provided to skip interactive selection
     if [[ -n "$provider" && -n "$model" ]]; then
         skip_interactive=true
+        skip_screen_clear=true  # Skip screen clearing when both are directly specified
     elif [[ -n "$provider" || -n "$model" ]]; then
         # Error if only one of -pr or -ml is provided
         echo -e "${RED}Error:${NC} Both -pr and -ml must be specified together"
@@ -264,26 +266,29 @@ tptg() {
         return 1
     fi
     
-    # Function to clear screen and show header
+    # Function to clear screen and show header - Now respects skip_screen_clear flag
     clear_and_show_header() {
-        # Use both clear command and ANSI escape sequence for more thorough clearing
-        clear
-        printf "\033c"  # ANSI escape sequence to reset terminal
-        
-        # Use simpler box drawing with fixed width
-        echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
-        echo -e "${BOLD}${BLUE}|       ${CYAN}GPT4Free Interface${BLUE}             |${NC}"
-        echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
-        
-        # Simplify query display to avoid parameter expansion issues
-        local display_prompt="$prompt"
-        if [[ ${#display_prompt} -gt 25 ]]; then
-            display_prompt="${display_prompt:0:25}..."
+        # Only clear if not skipping
+        if ! $skip_screen_clear; then
+            # Use both clear command and ANSI escape sequence for more thorough clearing
+            clear
+            printf "\033c"  # ANSI escape sequence to reset terminal
+            
+            # Use simpler box drawing with fixed width
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+            echo -e "${BOLD}${BLUE}|       ${CYAN}GPT4Free Interface${BLUE}             |${NC}"
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+            
+            # Simplify query display to avoid parameter expansion issues
+            local display_prompt="$prompt"
+            if [[ ${#display_prompt} -gt 25 ]]; then
+                display_prompt="${display_prompt:0:25}..."
+            fi
+            echo -e "${BOLD}${BLUE}| ${YELLOW}Query:${NC} $display_prompt${BLUE} |${NC}"
+            
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+            echo ""
         fi
-        echo -e "${BOLD}${BLUE}| ${YELLOW}Query:${NC} $display_prompt${BLUE} |${NC}"
-        
-        echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
-        echo ""
     }
     
     # Skip interactive selection if provider and model are specified
@@ -404,6 +409,12 @@ tptg() {
         echo -e "${BOLD}Using specified model:${NC} ${GREEN}'$model'${NC}"
     fi
     
+    # At the end of the selection process, add these exports:
+    if [[ -n "$provider" && -n "$model" ]]; then
+        # Export the selected provider and model for other functions to use
+        export G4F_SELECTED_PROVIDER="$provider"
+        export G4F_SELECTED_MODEL="$model"
+    fi
     # Run tgpt with the selected provider and model
     echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
     echo -e "${BOLD}${BLUE}| ${CYAN}Using provider:${NC} ${GREEN}$provider${NC}"
@@ -863,13 +874,18 @@ gitcommsg() {
     local use_tor=false
     local use_nazapi=false
     local nazapi_model=""
+    local use_g4f=false
+    local g4f_provider=""
+    local g4f_model=""
+    local saved_provider=""
+    local saved_model=""
 
     # Parse arguments first
     while [[ $# -gt 0 ]]; do
         case $1 in
             --help|-h)
                 # Help message display
-                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [-ml MODEL]"
+                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [-ml MODEL] [--g4f] [-pr PROVIDER]"
                 echo "Generate AI-powered commit messages from staged changes"
                 echo ""
                 echo "Options:"
@@ -878,12 +894,17 @@ gitcommsg() {
                 echo "  -cc, --chunk-recursive  Recursively chunk large commit messages"
                 echo "  --tor         Route traffic through Tor network"
                 echo "  -ml MODEL      Use custom model with nazOllama API (requires tptn)"
+                echo "                 Or specify model ID with --g4f"
+                echo "  --g4f         Use gpt4free interface via tptg"
+                echo "  -pr PROVIDER   Specify provider ID for gpt4free (requires --g4f)"
                 echo ""
                 echo "Available models:"
                 echo "  Online (default):"
                 echo "    gpt/1, llama/2, claude/3, o3/4, mistral/5"
                 echo "  nazOllama API (-ml):"
                 echo "    Any model supported by tptn (e.g. deepseek-r1:14b)"
+                echo "  gpt4free (--g4f):"
+                echo "    Interactive selection or specify with -pr and -ml"
                 echo ""
                 echo "Examples:"
                 echo "  gitcommsg                        # uses o3 (default)"
@@ -892,7 +913,13 @@ gitcommsg() {
                 echo "  gitcommsg claude -m \"refactor\"   # model + context"
                 echo "  gitcommsg -ml deepseek-r1:14b      # uses nazOllama API with specified model"
                 echo "  gitcommsg --tor -ml llama3.2:latest -m \"security fix\""
+                echo "  gitcommsg --g4f                  # uses interactive gpt4free selection"
+                echo "  gitcommsg --g4f -pr DDG -ml o3-mini # uses specific gpt4free provider/model"
                 return 0
+                ;;
+            --g4f)
+                use_g4f=true
+                shift
                 ;;
             --tor)
                 use_tor=true
@@ -917,29 +944,60 @@ gitcommsg() {
                 shift
                 ;;
             -ml)
+                shift
                 if [[ -z "$1" || "$1" =~ ^- ]]; then
                     echo "Error: -ml requires a model name argument"
                     return 1
                 fi
-                nazapi_model="$1"
-                use_nazapi=true
+                if $use_g4f; then
+                    g4f_model="$1"
+                else
+                    nazapi_model="$1"
+                    use_nazapi=true
+                fi
+                shift
+                ;;
+            -pr)
+                shift
+                if [[ -z "$1" || "$1" =~ ^- ]]; then
+                    echo "Error: -pr requires a provider ID argument"
+                    return 1
+                fi
+                if ! $use_g4f; then
+                    echo "Error: -pr can only be used with --g4f option"
+                    return 1
+                fi
+                g4f_provider="$1"
                 shift
                 ;;
             *)
-                # Validate model argument
-                case "$1" in
-                    gpt|1|llama|2|claude|3|o3|4|mistral|5) 
-                        model="$1"
-                        shift
-                        ;;
-                    *)
-                        echo "Error: Invalid model '$1' (valid: gpt/1, llama/2, claude/3, o3/4, mistral/5)"
-                        return 1
-                        ;;
-                esac
+                # Validate model argument if not using g4f or nazapi
+                if ! $use_g4f && ! $use_nazapi; then
+                    case "$1" in
+                        gpt|1|llama|2|claude|3|o3|4|mistral|5) 
+                            model="$1"
+                            shift
+                            ;;
+                        *)
+                            echo "Error: Invalid model '$1' (valid: gpt/1, llama/2, claude/3, o3/4, mistral/5)"
+                            return 1
+                            ;;
+                    esac
+                else
+                    echo "Error: Unexpected argument '$1'"
+                    return 1
+                fi
                 ;;
         esac
     done
+
+    # Validate g4f options
+    if $use_g4f; then
+        if [[ -n "$g4f_provider" && -z "$g4f_model" ]] || [[ -z "$g4f_provider" && -n "$g4f_model" ]]; then
+            echo "Error: When using --g4f with manual selection, both -pr and -ml must be provided"
+            return 1
+        fi
+    fi
 
     # Check if in a Git repository
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -1053,9 +1111,67 @@ Git diff to analyze:
         local recursion_depth=0
         local max_recursion=3
         local ai_cmd="tptd"
-        if $use_nazapi; then
+        local ai_args=()
+
+        # Determine which AI command to use
+        if $use_g4f; then
+            ai_cmd="tptg"
+            # If provider and model are specified, use them
+            if [[ -n "$g4f_provider" && -n "$g4f_model" ]]; then
+                saved_provider="$g4f_provider"
+                saved_model="$g4f_model"
+                ai_args=("-pr" "$g4f_provider" "-ml" "$g4f_model")
+            elif [[ -n "$saved_provider" && -n "$saved_model" ]]; then
+                # Reuse previously selected provider and model
+                ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
+            elif [[ -n "$G4F_SELECTED_PROVIDER" && -n "$G4F_SELECTED_MODEL" ]]; then
+                # Use previously exported variables from tptg
+                saved_provider="$G4F_SELECTED_PROVIDER"
+                saved_model="$G4F_SELECTED_MODEL"
+                ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
+                echo "Using previously selected provider '$saved_provider' and model '$saved_model'"
+            fi
+            # Otherwise, interactive selection will be used
+        elif $use_nazapi; then
             ai_cmd="tptn"
             ai_args=("-ml" "$nazapi_model")
+        fi
+        
+        # For interactive g4f, do a quick one-time selection via tptg
+        if [[ "$ai_cmd" == "tptg" && ${#ai_args[@]} -eq 0 ]]; then
+            echo "Running interactive provider/model selection via tptg..."
+            
+            # Create a temporary prompt to select provider/model
+            local temp_prompt="This is a temporary prompt to select your provider and model."
+            
+            # Save the current stdin
+            exec {STDIN_COPY}<&0
+            
+            # Redirect stdin from the terminal
+            exec < /dev/tty
+            
+            # Run tptg with a simple prompt to make selections - DO NOT redirect output
+            echo "Please select a provider and model in the menu that appears:"
+            echo "After selection is complete, the commit message generation will continue."
+            echo ""
+            
+            # Run tptg without redirecting its output
+            tptg "$temp_prompt"
+            
+            # Restore original stdin
+            exec 0<&${STDIN_COPY} {STDIN_COPY}<&-
+            
+            # Check if tptg exported the provider and model
+            if [[ -n "$G4F_SELECTED_PROVIDER" && -n "$G4F_SELECTED_MODEL" ]]; then
+                saved_provider="$G4F_SELECTED_PROVIDER"
+                saved_model="$G4F_SELECTED_MODEL"
+                ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
+                echo "Selected provider: $saved_provider"
+                echo "Selected model: $saved_model"
+            else
+                echo "Error: Provider and model selection failed"
+                return 1
+            fi
         fi
         
         if $chunk_mode; then
@@ -1091,20 +1207,24 @@ Diff chunk:\n{}"
                 while true; do
                     local tmpfile=$(mktemp)
                     local cmd_status=0
-                    if $use_tor; then
-                        if $use_nazapi; then
+
+                    # Execute the appropriate command with or without tor
+                    if $use_tor && ! $use_g4f; then
+                        # G4F doesn't support tor directly
+                        if [[ ${#ai_args[@]} -gt 0 ]]; then
                             $ai_cmd --tor "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
                         else
                             $ai_cmd --tor "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
                         fi
                     else
-                        if $use_nazapi; then
+                        # Normal execution with saved args
+                        if [[ ${#ai_args[@]} -gt 0 ]]; then
                             $ai_cmd "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
                         else
                             $ai_cmd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
                         fi
+                        cmd_status=${pipestatus[1]}
                     fi
-                    cmd_status=${pipestatus[1]}
                     
                     if [ $cmd_status -eq 0 ]; then
                         cat "$tmpfile" >> "$temp_dir/partials.txt"
@@ -1187,8 +1307,10 @@ Final message:"
         fi
 
         echo "\n🎉 Final commit message generation..."
-        # Final command execution with tor support
-        if $use_tor; then
+        # Final command execution with tor support or g4f
+        if $use_g4f; then
+            $ai_cmd -pr "$saved_provider" -ml "$saved_model" "$template" <<< "$diff_input"
+        elif $use_tor; then
             if $use_nazapi; then
                 $ai_cmd --tor "${ai_args[@]}" "$template" <<< "$diff_input"
             else
@@ -1206,8 +1328,15 @@ Final message:"
     # Capture diff and process
     local diff_content=$(git diff --staged)
     if ! process_diff "$diff_content" "$template"; then
+        # Clean up environment variables even on failure
+        unset G4F_SELECTED_PROVIDER
+        unset G4F_SELECTED_MODEL
         return 1
     fi
+    
+    # Clean up environment variables when done
+    unset G4F_SELECTED_PROVIDER
+    unset G4F_SELECTED_MODEL
 }
 
 # AI-powered text rewriter that preserves tone
