@@ -173,6 +173,8 @@ tptg() {
     local skip_interactive=false
     local skip_screen_clear=false
     local exporting_enabled=${G4F_EXPORT_ENABLED:-0}  # Check if export is enabled
+    local post_prompt_args=()  # Array to hold arguments that come after the prompt
+    local prompt_found=false   # Flag to track if we've found the prompt
     
     # Define color codes
     local BLUE='\033[0;34m'
@@ -186,25 +188,33 @@ tptg() {
     
     # Check for help flag first (special case)
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        echo -e "${BOLD}Usage:${NC} tptg [options] <query>"
+        echo -e "${BOLD}Usage:${NC} tptg [options] <query> [tgpt_options]"
         echo ""
         echo -e "${BOLD}Options:${NC}"
         echo -e "  -pr <provider_id> : Specify provider ID directly"
         echo -e "  -ml <model_id>    : Specify model ID directly"
         echo -e "  --help, -h        : Show this help message"
         echo ""
-        echo -e "${BOLD}Example:${NC}"
+        echo -e "${BOLD}Examples:${NC}"
         echo -e "  tptg \"What is quantum computing?\""
         echo -e "  tptg -pr DDG -ml o3-mini \"What is quantum computing?\""
+        echo -e "  tptg \"cute cat\" --img      # Pass --img to tgpt"
         echo ""
         echo -e "${YELLOW}Note:${NC}"
-        echo -e "  1. The prompt must be the last argument"
+        echo -e "  1. Any options after the prompt are passed directly to tgpt"
         echo -e "  2. Requires a local gpt4free instance running at http://localhost:1337"
         return 0
     fi
     
-    # Parse arguments - options must come before the prompt
-    while [[ $# -gt 1 ]]; do
+    # Parse arguments - looking for pre-prompt options and the prompt itself
+    while [[ $# -gt 0 ]]; do
+        # If we've already found the prompt, collect remaining args for tgpt
+        if $prompt_found; then
+            post_prompt_args+=("$1")
+            shift
+            continue
+        fi
+        
         case "${1:-}" in
             "-pr")
                 shift
@@ -225,20 +235,18 @@ tptg() {
                 shift
                 ;;
             *)
-                echo -e "${RED}Error:${NC} Invalid option '$1'"
-                echo -e "Usage: tptg [options] <query>"
-                echo -e "Run 'tptg --help' for more information"
-                return 1
+                # This argument is our prompt
+                prompt="$1"
+                prompt_found=true
+                shift
                 ;;
         esac
     done
     
-    # The last argument is the prompt
-    if [[ $# -eq 1 ]]; then
-        prompt="$1"
-    else
+    # Check if prompt is provided
+    if [[ -z "$prompt" ]]; then
         echo -e "${RED}Error:${NC} No prompt provided"
-        echo -e "Usage: tptg [options] <query>"
+        echo -e "Usage: tptg [options] <query> [tgpt_options]"
         return 1
     fi
     
@@ -250,13 +258,6 @@ tptg() {
         # Error if only one of -pr or -ml is provided
         echo -e "${RED}Error:${NC} Both -pr and -ml must be specified together"
         echo -e "Example: tptg -pr DDG -ml o3-mini \"What is quantum computing?\""
-        return 1
-    fi
-    
-    # Check if prompt is provided (should be redundant now)
-    if [[ -z "$prompt" ]]; then
-        echo -e "${RED}Error:${NC} No prompt provided"
-        echo -e "Usage: tptg [options] <query>"
         return 1
     fi
     
@@ -418,16 +419,20 @@ tptg() {
             export G4F_SELECTED_MODEL="$model"
         fi
     fi
-    # Run tgpt with the selected provider and model
+    
+    # Run tgpt with the selected provider and model, including any post-prompt args
     echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
     echo -e "${BOLD}${BLUE}| ${CYAN}Using provider:${NC} ${GREEN}$provider${NC}"
     echo -e "${BOLD}${BLUE}| ${CYAN}Using model:${NC} ${GREEN}$model${NC}"
     echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
     echo -e "${YELLOW}Sending request...${NC}"
+    
+    # Pass any post-prompt args to tgpt
     tgpt --provider openai \
          --url "$base_url/api/$provider/chat/completions" \
          --model "$model" \
-         "$prompt"
+         "$prompt" \
+         "${post_prompt_args[@]}"
 }
 
 ## tgpt with phind
