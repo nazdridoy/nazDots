@@ -429,10 +429,10 @@ tptg() {
     
     # Pass any post-prompt args to tgpt
     tgpt --provider openai \
+         "${post_prompt_args[@]}" \
          --url "$base_url/api/$provider/chat/completions" \
          --model "$model" \
-         "$prompt" \
-         "${post_prompt_args[@]}"
+         "$prompt"
 }
 
 ## tgpt with phind
