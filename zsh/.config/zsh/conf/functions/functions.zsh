@@ -1064,10 +1064,29 @@ type: <brief summary (max 50 chars)>
 - [type] key change 2
 - [type] key change N (include all significant changes)
 
-IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
-based on the nature of that specific change, NOT necessarily the same type as the main commit.
-For example, a "feat" commit might include bullet points tagged as [feat], [fix], [refactor], etc.
-depending on the nature of each specific change.
+Valid types (choose most specific):
+- feat: New user features (not for new files without user features)
+- fix: Bug fixes/corrections to errors
+- refactor: Restructured code (no behavior change) 
+- style: Formatting/whitespace changes
+- docs: Documentation only
+- test: Test-related changes
+- perf: Performance improvements
+- build: Build system changes
+- ci: CI pipeline changes
+- chore: Routine maintenance tasks
+- revert: Reverting previous changes
+- add: New files/resources with no user-facing features
+- remove: Removing files/code
+- update: Changes to existing functionality
+- security: Security-related changes
+- i18n: Internationalization
+- a11y: Accessibility improvements
+- api: API-related changes
+- ui: User interface changes
+- data: Database changes
+- config: Configuration changes
+- init: Initial commit/project setup
 
 GIT DIFF INTERPRETATION:
 - The diff header "diff --git a/file1 b/file2" indicates files being compared
@@ -1094,30 +1113,6 @@ GIT DIFF INTERPRETATION:
 - Extended headers may show "similarity index" for renames/copies
 - Index line shows blob hashes: "index fabadb8..4866510 100644"
 
-Valid types (choose most specific):
-- feat: New user features (not for new files without user features)
-- fix: Bug fixes/corrections to errors
-- refactor: Restructured code (no behavior change) 
-- style: Formatting/whitespace changes
-- docs: Documentation only
-- test: Test-related changes
-- perf: Performance improvements
-- build: Build system changes
-- ci: CI pipeline changes
-- chore: Routine maintenance tasks
-- revert: Reverting previous changes
-- add: New files/resources with no user-facing features
-- remove: Removing files/code
-- update: Changes to existing functionality
-- security: Security-related changes
-- i18n: Internationalization
-- a11y: Accessibility improvements
-- api: API-related changes
-- ui: User interface changes
-- data: Database changes
-- config: Configuration changes
-- init: Initial commit/project setup
-
 Rules:
 1. FIRST carefully analyze what exactly changed in the diff:
    - Look at the --- and +++ lines to identify files
@@ -1136,11 +1131,25 @@ Rules:
    - Line number range if relevant (e.g., "lines 45-60")
    - Class name if OOP code (e.g., "UserAuth class")
 
+IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
+based on the nature of that specific change, NOT necessarily the same type as the main commit.
+For example, a "feat" commit might include bullet points tagged as [feat], [fix], [refactor], etc.
+depending on the nature of each specific change.
+
+Example with context \"feat: login flow\":
+- Main commit type would be \"feat\"
+- But bullet points might use different types like:
+  [feat] Add new login page component
+  [fix] Correct validation error in password field
+  [style] Improve form layout for mobile devices
+  [refactor] Separate authentication logic into its own module
+
 EXAMPLE OUTPUT:
 Given a diff where user-auth.js has error handling added and config.json timeout value changed:
 
 fix: Improve auth error handling and increase timeout
 
+- [feat] Add new login page component
 - [fix] Add try/catch in user-auth.js:authenticateUser()
 - [fix] Handle network errors in user-auth.js:loginCallback()
 - [config] Increase API timeout from 3000ms to 5000ms in config.json
