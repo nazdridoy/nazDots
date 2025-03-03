@@ -1047,6 +1047,31 @@ type: <brief summary (max 50 chars)>
 - [type] key change 2
 - [type] key change N (include all significant changes)
 
+GIT DIFF INTERPRETATION:
+- The diff header "diff --git a/file1 b/file2" indicates files being compared
+- For modified files:
+  * "--- a/path" shows the original file (preimage)
+  * "+++ b/path" shows the modified file (postimage)
+- "@@" headers (e.g., "@@ -1,7 +1,6 @@") indicate line positions:
+  * First number pair (-1,7): start line,count in preimage
+  * Second number pair (+1,6): start line,count in postimage
+- Prefixes indicate line status:
+  * "+" lines are ADDED (appear in postimage only)
+  * "-" lines are REMOVED (appear in preimage only)
+  * " " lines are unchanged context (appear in both)
+- Special status indicators in raw/patch headers:
+  * "A": Addition of new file
+  * "D": Deletion of file
+  * "M": Modification to content/mode
+  * "R": Rename with optional percentage (e.g., "R86%")
+  * "C": Copy with similarity percentage
+  * "T": Type change (regular file/symlink/submodule)
+- For file mode changes, look for "mode change 100644 => 100755"
+- For renamed/copied files, look for "rename from/to" or "copy from/to"
+- Binary files show "Binary files differ" unless --binary option used
+- Extended headers may show "similarity index" for renames/copies
+- Index line shows blob hashes: "index fabadb8..4866510 100644"
+
 Valid types (choose most specific):
 - feat: New user features (not for new files without user features)
 - fix: Bug fixes/corrections to errors
