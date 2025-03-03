@@ -1040,9 +1040,18 @@ You MUST:
    \"$context\"-related changes in your summary and bullets
 5. Maintain the exact commit message format with proper types and detailed specifics
 
-Example with context \"fix login flow\":
-Even if the diff shows multiple changes, your commit message must focus on login flow fixes,
-using other changes as supporting details only if relevant to the login flow.
+IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
+based on the nature of that specific change, NOT necessarily the same type as the main commit.
+For example, a \"feat\" commit might include bullet points tagged as [feat], [fix], [refactor], etc.
+depending on the nature of each specific change.
+
+Example with context \"feat: login flow\":
+- Main commit type would be \"feat\"
+- But bullet points might use different types like:
+  [feat] Add new login page component
+  [fix] Correct validation error in password field
+  [style] Improve form layout for mobile devices
+  [refactor] Separate authentication logic into its own module
 
 "
     fi
@@ -1054,6 +1063,11 @@ type: <brief summary (max 50 chars)>
 - [type] key change 1 (max 60 chars per line)
 - [type] key change 2
 - [type] key change N (include all significant changes)
+
+IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
+based on the nature of that specific change, NOT necessarily the same type as the main commit.
+For example, a "feat" commit might include bullet points tagged as [feat], [fix], [refactor], etc.
+depending on the nature of each specific change.
 
 GIT DIFF INTERPRETATION:
 - The diff header "diff --git a/file1 b/file2" indicates files being compared
