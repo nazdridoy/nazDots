@@ -1029,12 +1029,20 @@ gitcommsg() {
 
     local context_prompt=""
     if [[ -n "$context" ]]; then
-        context_prompt="CRITICAL INSTRUCTION: The following user request takes priority: \"$context\"
+        context_prompt="ABSOLUTE PRIORITY INSTRUCTION: \"$context\"
 
-While analyzing the git diff, ensure your response primarily reflects this request.
-The git diff should only inform additional details if they align with the request.
-Format your response according to the commit message rules, but make \"$context\" 
-the main focus of the message.
+This user-provided context OVERRIDES any conflicting inference from the diff.
+You MUST:
+1. Use \"$context\" as the primary basis for the commit type and summary
+2. Only use the git diff to identify WHAT changed (files, functions, etc.)
+3. Focus bullet points on changes that support or relate to \"$context\"
+4. If the diff contains changes unrelated to \"$context\", still prioritize 
+   \"$context\"-related changes in your summary and bullets
+5. Maintain the exact commit message format with proper types and detailed specifics
+
+Example with context \"fix login flow\":
+Even if the diff shows multiple changes, your commit message must focus on login flow fixes,
+using other changes as supporting details only if relevant to the login flow.
 
 "
     fi
