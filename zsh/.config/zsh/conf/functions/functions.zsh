@@ -1047,68 +1047,56 @@ type: <brief summary (max 50 chars)>
 - [type] key change 2
 - [type] key change N (include all significant changes)
 
-Valid types (use most specific applicable):
-- feat: New user-facing features
-- add: Added new files/resources
-- update: Updates to existing features
-- remove: Removed files/features
-- fix, bugfix: Bug fixes
-- hotfix: Critical fixes
-- docs: Documentation changes
-- style: Code style/formatting (non-functional)
-- ui: User interface changes
-- refactor: Code restructuring (no behavior change)
+Valid types (choose most specific):
+- feat: New user features (not for new files without user features)
+- fix: Bug fixes/corrections to errors
+- refactor: Restructured code (no behavior change) 
+- style: Formatting/whitespace changes
+- docs: Documentation only
+- test: Test-related changes
 - perf: Performance improvements
-- test: Testing changes
 - build: Build system changes
-- ci: CI/CD changes
-- deploy: Deployment/release
-- deps: Dependency updates
-- chore: Maintenance tasks
-- revert: Reverts previous changes
-- wip: Work in progress
+- ci: CI pipeline changes
+- chore: Routine maintenance tasks
+- revert: Reverting previous changes
+- add: New files/resources with no user-facing features
+- remove: Removing files/code
+- update: Changes to existing functionality
 - security: Security-related changes
-- i18n: Internationalization/localization
+- i18n: Internationalization
 - a11y: Accessibility improvements
-- data: Database/schema changes
-- config: Configuration changes
 - api: API-related changes
+- ui: User interface changes
+- data: Database changes
+- config: Configuration changes
 - init: Initial commit/project setup
 
 Rules:
-1. Summary MUST be under 50 chars - truncate if needed
-2. Each bullet point must:
-   - Start with [type] where type matches changes
-   - Mention specific files/functions/endpoints (e.g. "auth/login.js")
-   - Explain WHAT changed, not just why
-   - Keep under 60 chars
-3. Prioritize these aspects:
-   a. Security-related changes
-   b. Breaking API changes
-   c. New features
-   d. Bug fixes
-4. For moved code: Use "moved X to Y" not just "changed X"
-5. For whitespace changes: Only mention if significant (e.g. indentation fixes)
-6. Group similar changes (e.g. "Update tests for X and Y")
-7. Never include:
-   - File permissions changes
-   - Comments-only changes
-   - Whitespace-only changes (unless rule 5 applies)
-   - Package manager internals (lock files)
+1. FIRST carefully analyze what exactly changed in the diff:
+   - Look at the --- and +++ lines to identify files
+   - Examine "-" and "+" lines to understand exact changes
+   - For modified lines, compare them directly
+   - For code moves, notice similar patterns in different locations
+2. Prefer specific types over generic ones (avoid "update" when something more specific applies)
+3. If adding new file with user features, use "feat"; without user features use "add"
+4. If text is edited, use "refactor" for logic changes or "style" for formatting
+5. When removing something, check if it is deleted or moved elsewhere
+6. For configuration files, prefer "config" over "update"
+7. Keep summary under 50 chars (MANDATORY)
+8. ALWAYS include specific details in each bullet point:
+   - Filename (required - e.g., "auth/login.js")
+   - Function name where applicable (e.g., "validateUser()")
+   - Line number range if relevant (e.g., "lines 45-60")
+   - Class name if OOP code (e.g., "UserAuth class")
 
-Examples of GOOD messages:
-1. fix: Resolve login page CSS overflow
+EXAMPLE OUTPUT:
+Given a diff where user-auth.js has error handling added and config.json timeout value changed:
 
-- [fix] Fix mobile menu overflow in static/css/main.css
-- [ui] Adjust padding on .auth-container in login.html
-- [test] Add viewport meta tag to login test cases
+fix: Improve auth error handling and increase timeout
 
-2. feat: Add user profile export endpoint
-
-- [feat] New /api/v1/users/export endpoint in routes/users.js
-- [security] Add rate limiting to export endpoint (5/min)
-- [api] Include export_status field in GET /profile response
-- [docs] Update API reference with export endpoint details
+- [fix] Add try/catch in user-auth.js:authenticateUser()
+- [fix] Handle network errors in user-auth.js:loginCallback()
+- [config] Increase API timeout from 3000ms to 5000ms in config.json
 
 Git diff to analyze:
 {}'
