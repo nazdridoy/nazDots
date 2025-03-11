@@ -1,0 +1,524 @@
+# AI-powered Git commit message generator
+gitcommsg() {
+    local model="o3"
+    local context=""
+    local chunk_mode=false
+    local recursive_chunk=false
+    local chunk_size=200
+    local use_tor=false
+    local use_nazapi=false
+    local nazapi_model=""
+    local use_g4f=false
+    local g4f_provider=""
+    local g4f_model=""
+    local saved_provider=""
+    local saved_model=""
+
+    # Parse arguments first
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --help|-h)
+                # Help message display
+                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [-ml MODEL] [--g4f] [-pr PROVIDER]"
+                echo "Generate AI-powered commit messages from staged changes"
+                echo ""
+                echo "Options:"
+                echo "  -m, --message  Additional context or priority message"
+                echo "  -c, --chunk    Process large diffs in chunks (for 429 errors)"
+                echo "  -cc, --chunk-recursive  Recursively chunk large commit messages"
+                echo "  --tor         Route traffic through Tor network"
+                echo "  -ml MODEL      Use custom model with nazOllama API (requires tptn)"
+                echo "                 Or specify model ID with --g4f"
+                echo "  --g4f         Use gpt4free interface via tptg"
+                echo "  -pr PROVIDER   Specify provider ID for gpt4free (requires --g4f)"
+                echo ""
+                echo "Available models:"
+                echo "  Online (default):"
+                echo "    gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                echo "  nazOllama API (-ml):"
+                echo "    Any model supported by tptn (e.g. deepseek-r1:14b)"
+                echo "  gpt4free (--g4f):"
+                echo "    Interactive selection or specify with -pr and -ml"
+                echo ""
+                echo "Examples:"
+                echo "  gitcommsg                        # uses o3 (default)"
+                echo "  gitcommsg llama                  # uses llama model"
+                echo "  gitcommsg -m \"important fix\"     # adds context"
+                echo "  gitcommsg claude -m \"refactor\"   # model + context"
+                echo "  gitcommsg -ml deepseek-r1:14b      # uses nazOllama API with specified model"
+                echo "  gitcommsg --tor -ml llama3.2:latest -m \"security fix\""
+                echo "  gitcommsg --g4f                  # uses interactive gpt4free selection"
+                echo "  gitcommsg --g4f -pr DDG -ml o3-mini # uses specific gpt4free provider/model"
+                return 0
+                ;;
+            --g4f)
+                use_g4f=true
+                shift
+                ;;
+            --tor)
+                use_tor=true
+                shift
+                ;;
+            -m|--message)
+                shift
+                if [[ -z "$1" || "$1" =~ ^- ]]; then
+                    echo "Error: -m/--message requires a non-empty message argument"
+                    return 1
+                fi
+                context="$1"
+                shift
+                ;;
+            -cc|--chunk-recursive)
+                recursive_chunk=true
+                chunk_mode=true
+                shift
+                ;;
+            -c|--chunk)
+                chunk_mode=true
+                shift
+                ;;
+            -ml)
+                shift
+                if [[ -z "$1" || "$1" =~ ^- ]]; then
+                    echo "Error: -ml requires a model name argument"
+                    return 1
+                fi
+                if $use_g4f; then
+                    g4f_model="$1"
+                else
+                    nazapi_model="$1"
+                    use_nazapi=true
+                fi
+                shift
+                ;;
+            -pr)
+                shift
+                if [[ -z "$1" || "$1" =~ ^- ]]; then
+                    echo "Error: -pr requires a provider ID argument"
+                    return 1
+                fi
+                if ! $use_g4f; then
+                    echo "Error: -pr can only be used with --g4f option"
+                    return 1
+                fi
+                g4f_provider="$1"
+                shift
+                ;;
+            *)
+                # Validate model argument if not using g4f or nazapi
+                if ! $use_g4f && ! $use_nazapi; then
+                    case "$1" in
+                        gpt|1|llama|2|claude|3|o3|4|mistral|5) 
+                            model="$1"
+                            shift
+                            ;;
+                        *)
+                            echo "Error: Invalid model '$1' (valid: gpt/1, llama/2, claude/3, o3/4, mistral/5)"
+                            return 1
+                            ;;
+                    esac
+                else
+                    echo "Error: Unexpected argument '$1'"
+                    return 1
+                fi
+                ;;
+        esac
+    done
+
+    # Validate g4f options
+    if $use_g4f; then
+        if [[ -n "$g4f_provider" && -z "$g4f_model" ]] || [[ -z "$g4f_provider" && -n "$g4f_model" ]]; then
+            echo "Error: When using --g4f with manual selection, both -pr and -ml must be provided"
+            return 1
+        fi
+    fi
+
+    # Check if in a Git repository
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Error: Not a Git repository. Run this command from a Git project root."
+        return 1
+    fi
+
+    # Moved staged changes validation AFTER help check
+    if ! git diff --cached --quiet; then
+        : # Changes exist, continue
+    else
+        echo "Error: No staged changes found. Stage changes with 'git add' first."
+        return 1
+    fi
+
+    # Validate context length if provided
+    if [[ -n "$context" && ${#context} -gt 100 ]]; then
+        echo "Error: Context message too long (max 100 characters)"
+        return 1
+    fi
+
+    local context_prompt=""
+    if [[ -n "$context" ]]; then
+        context_prompt="ABSOLUTE PRIORITY INSTRUCTION: \"$context\"
+
+This user-provided context OVERRIDES any conflicting inference from the diff.
+You MUST:
+1. Use \"$context\" as the primary basis for the commit type and summary
+2. Only use the git diff to identify WHAT changed (files, functions, etc.)
+3. Focus bullet points on changes that support or relate to \"$context\"
+4. If the diff contains changes unrelated to \"$context\", still prioritize 
+   \"$context\"-related changes in your summary and bullets
+5. Maintain the exact commit message format with proper types and detailed specifics
+
+IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
+based on the nature of that specific change, NOT necessarily the same type as the main commit.
+For example, a \"feat\" commit might include bullet points tagged as [feat], [fix], [refactor], etc.
+depending on the nature of each specific change.
+
+Example with context \"feat: login flow\":
+- Main commit type would be \"feat\"
+- But bullet points might use different types like:
+  [feat] Add new login page component
+  [fix] Correct validation error in password field
+  [style] Improve form layout for mobile devices
+  [refactor] Separate authentication logic into its own module
+
+"
+    fi
+
+    local template=''"$context_prompt"'   Analyze the following git diff and create a CONCISE but SPECIFIC commit message.
+Format the message as:
+type: <brief summary (max 50 chars)>
+
+- [type] key change 1 (max 60 chars per line)
+- [type] key change 2
+- [type] key change N (include all significant changes)
+
+Valid types (choose most specific):
+- feat: New user features (not for new files without user features)
+- fix: Bug fixes/corrections to errors
+- refactor: Restructured code (no behavior change) 
+- style: Formatting/whitespace changes
+- docs: Documentation only
+- test: Test-related changes
+- perf: Performance improvements
+- build: Build system changes
+- ci: CI pipeline changes
+- chore: Routine maintenance tasks
+- revert: Reverting previous changes
+- add: New files/resources with no user-facing features
+- remove: Removing files/code
+- update: Changes to existing functionality
+- security: Security-related changes
+- i18n: Internationalization
+- a11y: Accessibility improvements
+- api: API-related changes
+- ui: User interface changes
+- data: Database changes
+- config: Configuration changes
+- init: Initial commit/project setup
+
+GIT DIFF INTERPRETATION:
+- The diff header "diff --git a/file1 b/file2" indicates files being compared
+- For modified files:
+  * "--- a/path" shows the original file (preimage)
+  * "+++ b/path" shows the modified file (postimage)
+- "@@" headers (e.g., "@@ -1,7 +1,6 @@") indicate line positions:
+  * First number pair (-1,7): start line,count in preimage
+  * Second number pair (+1,6): start line,count in postimage
+- Prefixes indicate line status:
+  * "+" lines are ADDED (appear in postimage only)
+  * "-" lines are REMOVED (appear in preimage only)
+  * " " lines are unchanged context (appear in both)
+- Special status indicators in raw/patch headers:
+  * "A": Addition of new file
+  * "D": Deletion of file
+  * "M": Modification to content/mode
+  * "R": Rename with optional percentage (e.g., "R86%")
+  * "C": Copy with similarity percentage
+  * "T": Type change (regular file/symlink/submodule)
+- For file mode changes, look for "mode change 100644 => 100755"
+- For renamed/copied files, look for "rename from/to" or "copy from/to"
+- Binary files show "Binary files differ" unless --binary option used
+- Extended headers may show "similarity index" for renames/copies
+- Index line shows blob hashes: "index fabadb8..4866510 100644"
+
+Rules:
+1. FIRST carefully analyze what exactly changed in the diff:
+   - Look at the --- and +++ lines to identify files
+   - Examine "-" and "+" lines to understand exact changes
+   - For modified lines, compare them directly
+   - For code moves, notice similar patterns in different locations
+2. Prefer specific types over generic ones (avoid "update" when something more specific applies)
+3. If adding new file with user features, use "feat"; without user features use "add"
+4. If text is edited, use "refactor" for logic changes or "style" for formatting
+5. When removing something, check if it is deleted or moved elsewhere
+6. For configuration files, prefer "config" over "update"
+7. Keep summary under 50 chars (MANDATORY)
+8. ALWAYS include specific details in each bullet point:
+   - Filename (required - e.g., "auth/login.js")
+   - Function name where applicable (e.g., "validateUser()")
+   - Line number range if relevant (e.g., "lines 45-60")
+   - Class name if OOP code (e.g., "UserAuth class")
+
+IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
+based on the nature of that specific change, NOT necessarily the same type as the main commit.
+For example, a "feat" commit might include bullet points tagged as [feat], [fix], [refactor], etc.
+depending on the nature of each specific change.
+
+Example with context \"feat: login flow\":
+- Main commit type would be \"feat\"
+- But bullet points might use different types like:
+  [feat] Add new login page component
+  [fix] Correct validation error in password field
+  [style] Improve form layout for mobile devices
+  [refactor] Separate authentication logic into its own module
+
+EXAMPLE OUTPUT:
+Given a diff where user-auth.js has error handling added and config.json timeout value changed:
+
+fix: Improve auth error handling and increase timeout
+
+- [feat] Add new login page component
+- [fix] Add try/catch in user-auth.js:authenticateUser()
+- [fix] Handle network errors in user-auth.js:loginCallback()
+- [config] Increase API timeout from 3000ms to 5000ms in config.json
+
+Git diff to analyze:
+{}'
+
+    local process_diff() {
+        local diff_input="$1"
+        local template="$2"
+        local recursion_depth=0
+        local max_recursion=3
+        local ai_cmd="tptd"
+        local ai_args=()
+
+        # Determine which AI command to use
+        if $use_g4f; then
+            ai_cmd="tptg"
+            # If provider and model are specified, use them
+            if [[ -n "$g4f_provider" && -n "$g4f_model" ]]; then
+                saved_provider="$g4f_provider"
+                saved_model="$g4f_model"
+                ai_args=("-pr" "$g4f_provider" "-ml" "$g4f_model")
+            elif [[ -n "$saved_provider" && -n "$saved_model" ]]; then
+                # Reuse previously selected provider and model
+                ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
+            elif [[ -n "$G4F_SELECTED_PROVIDER" && -n "$G4F_SELECTED_MODEL" ]]; then
+                # Use previously exported variables from tptg
+                saved_provider="$G4F_SELECTED_PROVIDER"
+                saved_model="$G4F_SELECTED_MODEL"
+                ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
+                echo "Using previously selected provider '$saved_provider' and model '$saved_model'"
+            fi
+            # Otherwise, interactive selection will be used
+        elif $use_nazapi; then
+            ai_cmd="tptn"
+            ai_args=("-ml" "$nazapi_model")
+        fi
+        
+        # For interactive g4f, do a quick one-time selection via tptg
+        if [[ "$ai_cmd" == "tptg" && ${#ai_args[@]} -eq 0 ]]; then
+            echo "Running interactive provider/model selection via tptg..."
+            
+            # Create a temporary prompt to select provider/model
+            local temp_prompt="This is a temporary prompt to select your provider and model."
+            
+            # Save the current stdin
+            exec {STDIN_COPY}<&0
+            
+            # Redirect stdin from the terminal
+            exec < /dev/tty
+            
+            # Enable exporting for the tptg call
+            export G4F_EXPORT_ENABLED=1
+            
+            # Run tptg with a simple prompt to make selections
+            echo "Please select a provider and model in the menu that appears:"
+            echo "After selection is complete, the commit message generation will continue."
+            echo ""
+            
+            # Run tptg without redirecting its output
+            tptg "$temp_prompt"
+            
+            # Disable exporting after the call
+            unset G4F_EXPORT_ENABLED
+            
+            # Restore original stdin
+            exec 0<&${STDIN_COPY} {STDIN_COPY}<&-
+            
+            # Check if tptg exported the provider and model
+            if [[ -n "$G4F_SELECTED_PROVIDER" && -n "$G4F_SELECTED_MODEL" ]]; then
+                saved_provider="$G4F_SELECTED_PROVIDER"
+                saved_model="$G4F_SELECTED_MODEL"
+                ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
+                echo "Selected provider: $saved_provider"
+                echo "Selected model: $saved_model"
+            else
+                echo "Error: Provider and model selection failed"
+                return 1
+            fi
+        fi
+        
+        if $chunk_mode; then
+            echo "Processing diff in chunks (${chunk_size} lines)..."
+            
+            # Create temp directory
+            local temp_dir=$(mktemp -d)
+            trap "rm -rf $temp_dir" EXIT
+            
+            # Split diff into chunks
+            echo "$diff_input" | split -l $chunk_size - "$temp_dir/chunk_"
+            
+            local chunk_count=$(ls "$temp_dir" | wc -l)
+            echo "Found $chunk_count chunks to process"
+            
+            # Process each chunk
+            local i=1
+            for chunk in "$temp_dir"/chunk_*; do
+                echo "\n=== CHUNK $i/$chunk_count ==="
+                echo "Raw diff lines: $(wc -l < "$chunk")"
+                local chunk_template="Analyze this PARTIAL git diff and create a commit message summary with this exact format:
+[FILES]: Comma-separated affected files
+[CHANGES]: Bullet points of technical changes (max 3)
+[IMPACT]: One line describing user-facing impact
+
+Diff chunk:\n{}"
+                
+                echo "\n🚧 Partial analysis:"
+                local max_retries=3
+                local retry_count=0
+                local wait_seconds=10
+                
+                while true; do
+                    local tmpfile=$(mktemp)
+                    local cmd_status=0
+
+                    # Execute the appropriate command with or without tor
+                    if $use_tor && ! $use_g4f; then
+                        # G4F doesn't support tor directly
+                        if [[ ${#ai_args[@]} -gt 0 ]]; then
+                            $ai_cmd --tor "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        else
+                            $ai_cmd --tor "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        fi
+                    else
+                        # Normal execution with saved args
+                        if [[ ${#ai_args[@]} -gt 0 ]]; then
+                            $ai_cmd "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        else
+                            $ai_cmd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                        fi
+                        cmd_status=${pipestatus[1]}
+                    fi
+                    
+                    if [ $cmd_status -eq 0 ]; then
+                        cat "$tmpfile" >> "$temp_dir/partials.txt"
+                        break
+                    else
+                        ((retry_count++))
+                        if [ $retry_count -gt $max_retries ]; then
+                            rm -f "$tmpfile"
+                            echo "❌ Failed after $max_retries retries. Aborting."
+                            return 1
+                        fi
+                        
+                        echo -n "⚠️  Error (attempt $retry_count/$max_retries). Waiting ${wait_seconds}s... "
+                        local spin='⣷⣯⣟⡿⢿⣻⣽⣾'
+                        local start_time=$SECONDS
+                        while (( (SECONDS - start_time) < wait_seconds )); do
+                            echo -n "${spin:0:1}"
+                            spin="${spin:1}${spin:0:1}"
+                            sleep 0.2
+                            echo -ne "\b"
+                        done
+                        echo -e "\r🔄 Retrying...    "
+                        
+                        # Exponential backoff
+                        wait_seconds=$((wait_seconds * 2))
+                    fi
+                    rm -f "$tmpfile"
+                done
+                
+                ((i++))
+                
+                # Rate limit protection
+                if ((i < chunk_count)); then
+                    echo -n "⏳ Pausing 10s "
+                    local spin='⣷⣯⣟⡿⢿⣻⣽⣾'
+                    local start_time=$SECONDS
+                    while (( (SECONDS - start_time) < 10 )); do
+                        echo -n "${spin:0:1}"
+                        spin="${spin:1}${spin:0:1}"
+                        sleep 0.2
+                        echo -ne "\b"
+                    done
+                    echo -e "\r✅ Continued.   "
+                fi
+            done
+            
+            echo "\n📦 Collected partial analyses:"
+            cat "$temp_dir/partials.txt"
+            
+            # Combine partial results
+            echo "\n🔨 Combining partial analyses..."
+            local combine_template="Synthesize this commit message from partial analyses (iteration $((recursion_depth + 1))):
+$(cat "$temp_dir/partials.txt")
+
+Rules:
+1. Group changes by category (docs, feat, fix, etc)
+2. Prioritize user-facing changes
+3. Keep bullets under 60 chars
+4. Follow conventional commit format
+
+Final message:"
+            diff_input="$combine_template"
+            
+            # Recursive chunking for large messages
+            if $recursive_chunk && (( recursion_depth < max_recursion )); then
+                local msg_length=$(echo "$diff_input" | wc -l)
+                local msg_threshold=50
+                
+                while (( msg_length > msg_threshold )) && (( recursion_depth < max_recursion )); do
+                    echo "\n⚠️  Combined message too long (${msg_length} lines), re-chunking..."
+                    ((recursion_depth++))
+                    
+                    # Process the long message as new input
+                    diff_input=$(process_diff "$diff_input" "$template")
+                    msg_length=$(echo "$diff_input" | wc -l)
+                    
+                    echo "\n🔄 Recursion depth $recursion_depth - New length: ${msg_length} lines"
+                done
+            fi
+        fi
+
+        echo "\n🎉 Final commit message generation..."
+        # Final command execution with tor support or g4f
+        if $use_g4f; then
+            $ai_cmd -pr "$saved_provider" -ml "$saved_model" "$template" <<< "$diff_input"
+        elif $use_tor; then
+            if $use_nazapi; then
+                $ai_cmd --tor "${ai_args[@]}" "$template" <<< "$diff_input"
+            else
+                $ai_cmd --tor "$model" "$template" <<< "$diff_input"
+            fi
+        else
+            if $use_nazapi; then
+                $ai_cmd "${ai_args[@]}" "$template" <<< "$diff_input"
+            else
+                $ai_cmd "$model" "$template" <<< "$diff_input"
+            fi
+        fi
+    }
+
+    # Capture diff and process
+    local diff_content=$(git diff --staged)
+    if ! process_diff "$diff_content" "$template"; then
+        # Clean up environment variables even on failure
+        unset G4F_SELECTED_PROVIDER
+        unset G4F_SELECTED_MODEL
+        return 1
+    fi
+    
+    # Clean up environment variables when done
+    unset G4F_SELECTED_PROVIDER
+    unset G4F_SELECTED_MODEL
+}

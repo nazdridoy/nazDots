@@ -90,7 +90,7 @@ source $ZSH/oh-my-zsh.sh
 # Source zsh user configs
 source "$ZDOTDIR/conf/settings/settings.zsh"
 # Source zsh user functions
-source "$ZDOTDIR/conf/functions/functions.zsh"
+source "$ZDOTDIR/conf/functions/init.zsh"
 # Source zsh user Aliases
 source "$ZDOTDIR/conf/aliases/aliases.zsh"
 # Source zsh user shellFixes
