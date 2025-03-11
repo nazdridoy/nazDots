@@ -119,7 +119,7 @@ srx() {
 }
 
 # command-not-found.com search
-cmd() {
+cnf() {
   w3m "https://command-not-found.com/$*"
 }
 
