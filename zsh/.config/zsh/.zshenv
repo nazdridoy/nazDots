@@ -52,6 +52,8 @@ export GOPATH="$XDG_DATA_HOME"/go
 export R2ENV_PATH="$XDG_DATA_HOME"/r2env
 # Parallel ENV Variables
 export PARALLEL_HOME="$XDG_CONFIG_HOME"/parallel
+# export SOAR package manager bin PATH
+export PATH=$PATH:"$XDG_DATA_HOME"/soar/bin
 
 # export GO PATH
 export PATH=$PATH:"$XDG_DATA_HOME"/go/bin
