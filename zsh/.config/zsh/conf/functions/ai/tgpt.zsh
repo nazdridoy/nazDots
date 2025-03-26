@@ -706,3 +706,36 @@ setCFenv() {
   echo "CF_WAI_ACC:    $CF_WAI_ACC"
   echo "CF_WAI_API_Key: ${CF_WAI_API_Key:0:4}****${CF_WAI_API_Key: -4}"
 }
+
+## Set Gemini environment variables
+setGeminiEnv() {
+  # Add timeout handling
+  local timeout=5
+  local gemini_api_key
+  
+  echo "Retrieving Gemini API key..."
+  
+  # Use timeout command if available
+  if command -v timeout >/dev/null 2>&1; then
+    gemini_api_key=$(timeout $timeout kwalletcli -f "gemini-api" -e "GEMINI_API" 2>/dev/null)
+  else
+    gemini_api_key=$(kwalletcli -f "gemini-api" -e "GEMINI_API" 2>/dev/null)
+  fi
+
+  # Verify the API key was retrieved
+  if [[ -z "$gemini_api_key" ]]; then
+    echo "Error: Failed to retrieve Gemini API key from KWallet!"
+    echo "Ensure:"
+    echo "1. KWallet is unlocked"
+    echo "2. Entry exists in 'gemini-api' folder:"
+    echo "   - GEMINI_API"
+    return 1
+  fi
+
+  # Export to current shell session
+  export GEMINI_API="$gemini_api_key"
+
+  # Confirm success (with partial key masking)
+  echo "Gemini environment variable set:"
+  echo "GEMINI_API: ${GEMINI_API:0:4}****${GEMINI_API: -4}"
+}
