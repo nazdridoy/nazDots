@@ -1,0 +1,91 @@
+[
+  {
+    "config_version": 2,
+    "id": "863e3392-218f-45cf-8924-cf72c0fb4a2a",
+    "archive_prefix": "331375-",
+    "repo_id": "168aba8940946b3bfce2111933181083870e3df7d775da29cd14c7be15969997",
+    "repo": {
+      "type": "Local",
+      "path": "staticsync/data/pika-backups/backup-eosnaz-nazmul",
+      "mount_path": "/media/stc",
+      "uri": "file:///media/stc/staticsync/data/pika-backups/backup-eosnaz-nazmul",
+      "drive_name": "TOSHIBA MQ04ABF100",
+      "mount_name": "StaticSyncDrive",
+      "volume_uuid": "2ae6ac51-3c35-4dc7-b6e0-9f0d454a317b",
+      "volume_uuid_identifier": "2ae6ac51-3c35-4dc7-b6e0-9f0d454a317b",
+      "removable": false,
+      "icon": ". GThemedIcon drive-harddisk drive drive-harddisk-symbolic drive-symbolic",
+      "icon_symbolic": ". GThemedIcon drive-harddisk-symbolic drive-symbolic drive-harddisk drive",
+      "settings": {
+        "command_line_args": []
+      }
+    },
+    "encrypted": false,
+    "encryption_mode": "repokey-blake2",
+    "include": [
+      ""
+    ],
+    "exclude": [
+      {
+        "PathPrefix": ".cache"
+      },
+      {
+        "PathPrefix": ".firestorm_x64"
+      },
+      {
+        "PathPrefix": ".firestorm_x64.bkp"
+      },
+      {
+        "PathPrefix": ".local/share/Steam"
+      },
+      {
+        "PathPrefix": ".local/share/bottles"
+      },
+      {
+        "PathPrefix": ".local/share/waydroid"
+      },
+      {
+        "PathPrefix": ".npm/_cacache"
+      },
+      {
+        "PathPrefix": "GNS3/projects"
+      },
+      {
+        "PathPrefix": "Games"
+      },
+      {
+        "PathPrefix": "NAZ/Workspace/TEMP/testNdelete"
+      },
+      {
+        "PathPrefix": "VirtualMachines"
+      },
+      "Caches",
+      "Trash",
+      "FlatpakApps",
+      "VmsContainers"
+    ],
+    "schedule": {
+      "enabled": true,
+      "settings": {
+        "run_on_battery": false
+      },
+      "frequency": {
+        "Daily": {
+          "preferred_time": "00:00:00"
+        }
+      }
+    },
+    "prune": {
+      "enabled": true,
+      "keep": {
+        "hourly": 1,
+        "daily": 2,
+        "weekly": 3,
+        "monthly": 1,
+        "yearly": 0
+      }
+    },
+    "title": "",
+    "user_scripts": {}
+  }
+]
