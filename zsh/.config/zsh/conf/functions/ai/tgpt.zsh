@@ -739,3 +739,154 @@ setGeminiEnv() {
   echo "Gemini environment variable set:"
   echo "GEMINI_API: ${GEMINI_API:0:4}****${GEMINI_API: -4}"
 }
+
+## Set G4F environment variables
+setG4Fenv() {
+    local provider=""
+    local model=""
+    local base_url="http://localhost:1337"
+    
+    # Define color codes
+    local BLUE='\033[0;34m'
+    local GREEN='\033[0;32m'
+    local YELLOW='\033[0;33m'
+    local CYAN='\033[0;36m'
+    local PURPLE='\033[0;35m'
+    local RED='\033[0;31m'
+    local BOLD='\033[1m'
+    local NC='\033[0m' # No Color
+    
+    # Check if gpt4free server is running
+    if ! curl -s "$base_url/v1/models" > /dev/null; then
+        echo -e "${RED}Error:${NC} Cannot connect to gpt4free server at $base_url"
+        echo -e "Make sure the server is running and accessible"
+        return 1
+    fi
+    
+    # Clear screen and show header
+    clear
+    printf "\033c"  # ANSI escape sequence to reset terminal
+    echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+    echo -e "${BOLD}${BLUE}|       ${CYAN}G4F Provider Selection${BLUE}         |${NC}"
+    echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+    
+    # Provider selection loop
+    while true; do
+        # Get available providers
+        echo -e "${CYAN}Fetching available providers...${NC}"
+        local providers=$(curl -s -X 'GET' "$base_url/v1/models" \
+            -H 'accept: application/json' | jq -r '.data[] | select(.provider == true) | .id')
+        
+        if [[ -z "$providers" ]]; then
+            echo -e "${RED}Error:${NC} No providers found"
+            return 1
+        fi
+        
+        # Create a numbered menu for provider selection
+        echo -e "${BOLD}${GREEN}Available providers:${NC}"
+        echo ""  # Add spacing before provider list
+        local i=1
+        local provider_array=()
+        while read -r p; do
+            # Use different colors for alternating rows
+            if (( i % 2 == 0 )); then
+                echo -e "  ${CYAN}$i)${NC} $p"
+            else
+                echo -e "  ${PURPLE}$i)${NC} $p"
+            fi
+            provider_array+=("$p")
+            ((i++))
+        done <<< "$providers"
+        echo ""  # Add spacing after provider list
+        
+        # Get user selection
+        echo -e -n "${YELLOW}Select provider (1-$((i-1))): ${NC}"
+        read selection
+        
+        # Validate selection
+        if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
+            echo -e "${RED}Error:${NC} Invalid selection"
+            sleep 1  # Brief pause to show error
+            continue
+        fi
+        
+        # Arrays in zsh are 1-indexed, adjust the index
+        provider="${provider_array[$selection]}"
+        
+        # Clear screen before showing models
+        clear
+        printf "\033c"
+        echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+        echo -e "${BOLD}${BLUE}|       ${CYAN}G4F Model Selection${BLUE}            |${NC}"
+        echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+        echo -e "${BOLD}Selected provider:${NC} ${GREEN}'$provider'${NC}"
+        
+        # Get available models for the selected provider
+        echo -e "${CYAN}Fetching models for provider '$provider'...${NC}"
+        local models=$(curl -s -X 'GET' "$base_url/api/$provider/models" \
+            -H 'accept: application/json' | jq -r '.data[] | .id')
+        
+        if [[ -z "$models" ]]; then
+            echo -e "${RED}Error:${NC} No models found for provider '$provider'"
+            echo -e "Please select a different provider."
+            sleep 2  # Pause to show error message
+            continue
+        fi
+        
+        # Create a numbered menu for model selection with back option
+        echo -e "${BOLD}${GREEN}Available models for $provider:${NC}"
+        echo ""  # Add spacing before the back option
+        echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
+        echo ""  # Add spacing to separate back option from models
+        local i=1
+        local model_array=()
+        while read -r m; do
+            # Use different colors for alternating rows
+            if (( i % 2 == 0 )); then
+                echo -e "  ${CYAN}$i)${NC} $m"
+            else
+                echo -e "  ${PURPLE}$i)${NC} $m"
+            fi
+            model_array+=("$m")
+            ((i++))
+        done <<< "$models"
+        
+        # Get user selection
+        echo -e -n "${YELLOW}Select model (0 to go back, 1-$((i-1)) to select): ${NC}"
+        read selection
+        
+        # Check if user wants to go back
+        if [[ "$selection" == "0" ]]; then
+            echo -e "${BLUE}Going back to provider selection...${NC}"
+            sleep 1.5  # Longer pause before clearing
+            clear
+            printf "\033c"
+            continue
+        fi
+        
+        # Validate selection
+        if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
+            echo -e "${RED}Error:${NC} Invalid selection"
+            sleep 1  # Brief pause to show error
+            continue
+        fi
+        
+        # Arrays in zsh are 1-indexed, adjust the index
+        model="${model_array[$selection]}"
+        break
+    done
+    
+    # Export the selected provider and model
+    export G4F_SELECTED_PROVIDER="$provider"
+    export G4F_SELECTED_MODEL="$model"
+    
+    # Show confirmation
+    clear
+    printf "\033c"
+    echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+    echo -e "${BOLD}${BLUE}|       ${CYAN}G4F Settings Exported${BLUE}           |${NC}"
+    echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+    echo -e "${BOLD}Exported variables:${NC}"
+    echo -e "${CYAN}G4F_SELECTED_PROVIDER:${NC} ${GREEN}'$provider'${NC}"
+    echo -e "${CYAN}G4F_SELECTED_MODEL:${NC} ${GREEN}'$model'${NC}"
+}
