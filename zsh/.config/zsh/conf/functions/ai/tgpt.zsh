@@ -308,8 +308,70 @@ tptp() {
 tptd() {
     local model="o3-mini"  # Set default model first
     local use_tor=false
+    local base_url="http://localhost:1337"
+    local prompt=""
+    local prompt_found=false
 
-    # Parse arguments
+    # Check if G4F environment variables are set
+    if [[ -n "$G4F_SELECTED_PROVIDER" && -n "$G4F_SELECTED_MODEL" ]]; then
+        # Parse arguments - looking for tor, help, and the prompt
+        while [[ $# -gt 0 ]]; do
+            # If we've already found the prompt, collect remaining args
+            if $prompt_found; then
+                prompt="$prompt $1"
+                shift
+                continue
+            fi
+
+            case "${1:-}" in
+                "--tor")
+                    use_tor=true
+                    shift
+                    ;;
+                "--help"|"-h")
+                    echo "Usage: tptd [--tor] <query>"
+                    echo "Using G4F environment settings:"
+                    echo "  Provider: $G4F_SELECTED_PROVIDER"
+                    echo "  Model: $G4F_SELECTED_MODEL"
+                    echo ""
+                    echo "Options:"
+                    echo "  --tor      : Route traffic through Tor network"
+                    return 0
+                    ;;
+                *)
+                    # This argument is our prompt
+                    prompt="$1"
+                    prompt_found=true
+                    shift
+                    ;;
+            esac
+        done
+
+        # Check if prompt is provided
+        if [[ -z "$prompt" ]]; then
+            echo "Error: No prompt provided"
+            return 1
+        fi
+
+        if $use_tor; then
+            if ! command -v torify >/dev/null 2>&1; then
+                echo "Error: torify not found. Please install tor package."
+                return 1
+            fi
+            torify tgpt --provider openai \
+                --url "$base_url/api/$G4F_SELECTED_PROVIDER/chat/completions" \
+                --model "$G4F_SELECTED_MODEL" \
+                "$prompt"
+        else
+            tgpt --provider openai \
+                --url "$base_url/api/$G4F_SELECTED_PROVIDER/chat/completions" \
+                --model "$G4F_SELECTED_MODEL" \
+                "$prompt"
+        fi
+        return
+    fi
+
+    # Original tptd functionality if G4F env is not set
     while [[ $# -gt 0 ]]; do
         case "${1:-}" in
             "--tor")
@@ -356,7 +418,6 @@ tptd() {
         esac
     done
 
-    # Check if torify is available when --tor is used
     if $use_tor; then
         if ! command -v torify >/dev/null 2>&1; then
             echo "Error: torify not found. Please install tor package."
