@@ -313,7 +313,7 @@ tptd() {
     local prompt=""
 
     # Check if G4F environment variables are set
-    if [[ -n "$G4F_SELECTED_PROVIDER" && -n "$G4F_SELECTED_MODEL" ]]; then
+    if [[ -n "$G4F_PROVIDER" && -n "$G4F_MODEL" ]]; then
         # Parse arguments - looking for flags and the prompt
         while [[ $# -gt 0 ]]; do
             case "${1:-}" in
@@ -324,8 +324,8 @@ tptd() {
                 "--help"|"-h")
                     echo "Usage: tptd [--tor] [-flags] <query>"
                     echo "Using G4F environment settings:"
-                    echo "  Provider: $G4F_SELECTED_PROVIDER"
-                    echo "  Model: $G4F_SELECTED_MODEL"
+                    echo "  Provider: $G4F_PROVIDER"
+                    echo "  Model: $G4F_MODEL"
                     echo ""
                     echo "Options:"
                     echo "  --tor      : Route traffic through Tor network"
@@ -355,14 +355,14 @@ tptd() {
                 return 1
             fi
             torify tgpt --provider openai \
-                --url "$base_url/api/$G4F_SELECTED_PROVIDER/chat/completions" \
-                --model "$G4F_SELECTED_MODEL" \
+                --url "$base_url/api/$G4F_PROVIDER/chat/completions" \
+                --model "$G4F_MODEL" \
                 "${tgpt_args[@]}" \
                 "$prompt"
         else
             tgpt --provider openai \
-                --url "$base_url/api/$G4F_SELECTED_PROVIDER/chat/completions" \
-                --model "$G4F_SELECTED_MODEL" \
+                --url "$base_url/api/$G4F_PROVIDER/chat/completions" \
+                --model "$G4F_MODEL" \
                 "${tgpt_args[@]}" \
                 "$prompt"
         fi
@@ -936,8 +936,8 @@ setG4Fenv() {
     done
     
     # Export the selected provider and model
-    export G4F_SELECTED_PROVIDER="$provider"
-    export G4F_SELECTED_MODEL="$model"
+    export G4F_PROVIDER="$provider"
+    export G4F_MODEL="$model"
     
     # Show confirmation
     clear
@@ -946,6 +946,6 @@ setG4Fenv() {
     echo -e "${BOLD}${BLUE}|       ${CYAN}G4F Settings Exported${BLUE}           |${NC}"
     echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
     echo -e "${BOLD}Exported variables:${NC}"
-    echo -e "${CYAN}G4F_SELECTED_PROVIDER:${NC} ${GREEN}'$provider'${NC}"
-    echo -e "${CYAN}G4F_SELECTED_MODEL:${NC} ${GREEN}'$model'${NC}"
+    echo -e "${CYAN}G4F_PROVIDER:${NC} ${GREEN}'$provider'${NC}"
+    echo -e "${CYAN}G4F_MODEL:${NC} ${GREEN}'$model'${NC}"
 }
