@@ -309,49 +309,45 @@ tptd() {
     local model="o3-mini"  # Set default model first
     local use_tor=false
     local base_url="http://localhost:1337"
+    local tgpt_args=()  # Array to store tgpt arguments
     local prompt=""
-    local prompt_found=false
 
     # Check if G4F environment variables are set
     if [[ -n "$G4F_SELECTED_PROVIDER" && -n "$G4F_SELECTED_MODEL" ]]; then
-        # Parse arguments - looking for tor, help, and the prompt
+        # Parse arguments - looking for flags and the prompt
         while [[ $# -gt 0 ]]; do
-            # If we've already found the prompt, collect remaining args
-            if $prompt_found; then
-                prompt="$prompt $1"
-                shift
-                continue
-            fi
-
             case "${1:-}" in
                 "--tor")
                     use_tor=true
                     shift
                     ;;
                 "--help"|"-h")
-                    echo "Usage: tptd [--tor] <query>"
+                    echo "Usage: tptd [--tor] [-flags] <query>"
                     echo "Using G4F environment settings:"
                     echo "  Provider: $G4F_SELECTED_PROVIDER"
                     echo "  Model: $G4F_SELECTED_MODEL"
                     echo ""
                     echo "Options:"
                     echo "  --tor      : Route traffic through Tor network"
+                    echo "  All tgpt flags are supported (-s, -i, -q, etc.)"
                     return 0
                     ;;
+                -*)
+                    # Collect all tgpt flags
+                    tgpt_args+=("$1")
+                    shift
+                    ;;
                 *)
-                    # This argument is our prompt
-                    prompt="$1"
-                    prompt_found=true
+                    # Everything else becomes part of the prompt
+                    if [[ -z "$prompt" ]]; then
+                        prompt="$1"
+                    else
+                        prompt="$prompt $1"
+                    fi
                     shift
                     ;;
             esac
         done
-
-        # Check if prompt is provided
-        if [[ -z "$prompt" ]]; then
-            echo "Error: No prompt provided"
-            return 1
-        fi
 
         if $use_tor; then
             if ! command -v torify >/dev/null 2>&1; then
@@ -361,11 +357,13 @@ tptd() {
             torify tgpt --provider openai \
                 --url "$base_url/api/$G4F_SELECTED_PROVIDER/chat/completions" \
                 --model "$G4F_SELECTED_MODEL" \
+                "${tgpt_args[@]}" \
                 "$prompt"
         else
             tgpt --provider openai \
                 --url "$base_url/api/$G4F_SELECTED_PROVIDER/chat/completions" \
                 --model "$G4F_SELECTED_MODEL" \
+                "${tgpt_args[@]}" \
                 "$prompt"
         fi
         return
