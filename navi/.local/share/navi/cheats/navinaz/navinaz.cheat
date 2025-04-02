@@ -1,0 +1,205 @@
+ % navinaz, asciiquarium, Fun, ASCII.art, cli
+# Display an aquarium/sea animation in ASCII art
+asciiquarium
+
+% navinaz, zsh, zshOpenat, sysAdmin, admin, sys, shell
+# Real-time ZSH File Access using strace
+strace zsh 2>&1 | grep 'openat'
+
+% navinaz, zsh, zsh-x, zshDebug, debug, sysAdmin, admin, sys, shell
+# open ZSH in debug mode 
+zsh -xl
+
+
+
+% navinaz, ParuUP, paru, sysAdmin, system, update
+# System Update with AUR packages using paru
+paru -Syu
+
+% navinaz, sysAdmin, csysdig, sys, admin, troubleshooting, performance
+# Explore and troubleshoot system-level issues with csysdig
+sudo csysdig
+
+% navinaz, netHogs, bandwhich, sysAdmin, net, sys, admin, speed, hog
+# Identify programs consuming bandwidth with netHogs
+sudo bandwhich -d 8.8.8.8
+
+% navinaz, findFiles, find, FileManagement, files
+# Find all files with a string match in their name
+sudo find / -iname '*<string>*'
+
+% navinaz, nmtui, sysAdmin, NetworkManager, wifi, sys, admin, network
+# Manage NetworkManager with a Text User Interface (TUI)
+nmtui
+
+% navinaz, btrfsDU, btdu, sysAdmin, du, btrfs, space, freespace, ssd, hdd
+# Profile disk usage on a btrfs filesystem with btdu
+sudo btdu /run/BtrfsAssistant/baf242f7-b50b-4b32-821e-0bffae7e80d4
+
+% navinaz, xhostUserPermission, xhost, sysAdmin, xserver, Distrobox, xhost, xhostUserPermission, Permission
+# Allow user access to xserver in Distrobox
+xhost +si:localuser:$USER
+
+% navinaz, paruOrphanRemove, paru, sysAdmin, system, update, orphan, packages
+# Remove orphan packages using paru
+paru -Qdttq | pacman -Rns -
+
+% navinaz, cargoCacheClean, cargo, sysAdmin, autoclean
+# Autoclean cargo cache
+cargo cache -a
+
+% navinaz, paruChacheClean, paru, clear, clean, sysAdmin,
+# Clear paru cache
+paru -Sccd --noconfirm
+
+% navinaz, s-tui, Tools, monitoring, sys, performance, cpu, stress, test
+# Terminal UI stress test and monitoring tool with s-tui
+s-tui
+
+% navinaz, sysz, sysAdmin, sysAdmin
+# Control systemd with sysz
+sysz
+
+% navinaz, makeDirChangeDir, mkdir, FileManagement, fileManagement, file, dir, create, moveto, cd
+# Create a directory and change into it simultaneously
+mkdir <relativeDirPath> && cd <relativeDirPath>
+
+% navinaz, rebuild-detector, checkrebuild, sysAdmin, rebuild-detector, paru, system, update, packages
+# Run checkrebuild to identify packages needing a rebuild
+checkrebuild -v
+
+% navinaz, rebuildPackagesIfNeeded, checkrebuild, sysAdmin, rebuild-detector, paru, system, update, packages
+# Autorebuild packages after a major update
+checkrebuild | awk '{print $2}' | xargs -r paru -Syu --rebuild --noconfirm
+
+% navinaz, ParuReviewPKGBUILD, Paru, sysAdmin, PKGBUILD, Review
+# Review and edit PKGBUILD before building with paru
+paru --review <PackageName>
+
+% navinaz, pdfConvertToNonSearchable, pdftoppm, FileManagement, PDF, Non-Searchable, Image, Convert, Text
+# Convert Text PDF to Non-Searchable Image PDF
+pdftoppm -png '<inputFileName>.pdf' output_imagex599 && sleep 1 && convert output_imagex599-*.png '<inputFileName>_non_searchable_output.pdf' && rm output_imagex599-*.png
+
+% navinaz, pacvis, sysAdmin, pacgraph, pacman, Visualize
+# Visualize pacman local database with an interactive graph using pacvis
+pacvis
+
+% navinaz, pkgsizes, sysAdmin, pkgsizes, pacman, pactree, size, packages
+# Display actual sizes of packages in Arch Linux with pkgsizes
+pkgsizes.py | column -t | less
+
+% navinaz, zgitdl, Tools, github, git, svn, downgit, dl, download, zgitdl
+# Download a single folder from a GitHub repository using svn with zgitdl
+zgitdl <GitHubURL>
+
+% navinaz, docker-Dry, dry, sysAdmin, Docker, cli, manage, sysAdmin
+# Manage Docker and Docker Swarm with a terminal application - Dry
+dry
+
+% navinaz, cloudflareCheck, curl, sysAdmin, cloudflare, networks, connection, warp, vpn, sysAdmin
+# Check Cloudflare connections with curl
+curl 'https://www.cloudflare.com/cdn-cgi/trace'
+
+% navinaz, ipInfo, curl, Tools, ip, info, vpn, networks, connections, Tools
+# Get IP info from ip-api.com with curl
+curl ip-api.com
+
+% navinaz, tempFileShare, curl, Tools, upload, temp, "0x0.st", temp, Tools
+# Upload a temporary file to 0x0.st with curl
+curl -F file=@'<filePath>' -F expires=<expireINhours> -F secret= https://0x0.st
+
+% navinaz, GPGencryptFileShare, curl, Tools, upload, temp, "0x0.st", temp, Tools
+# Upload a temporary encryptedfile to 0x0.st with curl
+cat '<filePath>' | gpg --pinentry-mode loopback -ac -o- | curl -sD - -F file=@- -Fexpires=<expiresInHours> -Fsecret= https://0x0.st
+
+% navinaz, GPGdecryptCloudFile, gpg, curl, Tools, openssl, Decrypt, URL, Tools
+# Decrypt a file using GPG
+curl -s '<encryptedFileUrl>' | gpg --pinentry-mode loopback --decrypt --armor - 
+
+% navinaz, decryptCloudFile, curl, openssl, Tools, Decrypt, URL, Tools
+# Decrypt a file using OpenSSL with AES-256-CBC and PBKDF2
+curl -s <aes-256-cbc_pbkdf2_encrypted_file_URL> | openssl aes-256-cbc -pbkdf2 -d
+
+% navinaz, uploadEncryptedFile, curl, openssl, Tools, Encrypt, AES-256-CBC, PBKDF2, upload, Tools
+# Encrypt a file with OpenSSL and upload it to a file-sharing service
+openssl aes-256-cbc -pbkdf2 -e -in '<filePath>' | curl -sD - --upload-file - 'https://transfer.sh/<cloudFileName>' -H 'Max-Days: <MaxDays>' -H 'Max-Downloads: <MaxDownloads>' | grep -i -E 'transfer\.sh/|x-url-delete'
+
+% navinaz, randomString, python, Tools, random, string, generator, cli
+# Generate a random string of variable length based on user input
+python -c "import random; print(''.join(random.choice(''.join([chr(i) for i in range(ord('K'), ord('Z')+1)] + [chr(i) for i in range(ord('k'), ord('z')+1)] +[str(i) for i in range(10)])) for _ in range(<length>)))"
+
+% navinaz, SLVOTEIDs, python, sl, Tools, random, string, generator, cli
+# Generate SL-VOTEIDs
+python -c "import random, time, hashlib; print(['{}{}a0{}'.format(chr(ord('A')+index), ''.join(random.choice(''.join([chr(i) for i in range(ord('K'), ord('Z')+1)] + [chr(i) for i in range(ord('k'), ord('z')+1)] + [str(i) for i in range(1, 9)])) for _ in range(4)), hashlib.sha256(str(time.time()).encode()).hexdigest()[:4]) for index in range(10)])"
+
+
+% navinaz, bindToInterface, sysAdmin, NetworkManager, wifi, sys, admin, network, Tools, cli
+# Bind applications to a specific network interface / network adapter.
+BIND_INTERFACE=wlo1 DNS_OVERRIDE_IP=8.8.8.8 LD_PRELOAD=/usr/lib/bindToInterface.so <command>
+
+% navinaz, straceFileTrace, strace, sysAdmin, trace, file, output, command
+# Trace file access of a command using strace and save the output to a file
+strace -f -e trace=file -o output.txt <command>
+
+% navinaz, findAliasLocation, zsh, alias, shell, cli
+# Find the location of an alias definition in zsh
+zsh -i -x -c '' |& grep -E "alias\s*['\"]?<alias>\s*="
+
+% navinaz, findFunctionSource, zsh,type function, shell, cli
+# Locate the source of a function in zsh
+type -a '<functionName>'
+
+% navinaz, pkgFileList, pkgfile, Arch Linux, package management, CLI
+# List files provided by a package in Arch Linux
+pkgfile -l <package>
+
+% navinaz, csvTojson, csvjson, jq, CSV, JSON, conversion, CLI
+# Convert a CSV file to JSON using csvjson and format it with jq
+csvjson <file path of a CSV> | jq .
+
+% navinaz, listRunningKVM, KVM, qemu, virtualization, CLI
+# List manually launched KVM instances
+ps -ef | awk -e '/qemu/ && !/awk/' | sed -e 's/[^/]*//' -e 's/ -/\n\t-/g'
+
+% navinaz, pkgFileSearch, pkgfile, Arch Linux, package management, CLI
+# Search for packages containing the target file in Arch Linux
+pkgfile -s <targetFileName>
+
+% navinaz, decryptGitCrypt, git-crypt, GPG, KPDB_Hades, repository, CLI
+# Decrypt and unlock a git-crypt repository
+cat .openCloud/crypt/Hades/Cerberus | gpg -d --pinentry-mode loopback | git-crypt unlock -
+
+% navinaz, convertWebaToOpus, ffmpeg, audio conversion, CLI
+# Convert all .weba files to .opus and delete the .weba file if successful
+find . -type f -name "*.weba" -exec sh -c 'ffmpeg -i "{}" -c copy "${1%.weba}.opus" && rm "$1"' _ {} \;
+
+
+% navinaz, copyMetadataFromM4A, ffmpeg, metadata, audio, CLI
+# Copy metadata from .m4a files to .opus files
+for opus_file in *.opus; do m4a_file="${opus_file%.opus}.m4a"; if [[ -f "$m4a_file" ]]; then ffmpeg -i "$opus_file" -i "$m4a_file" -map_metadata 1 -c copy temp.opus && mv temp.opus "$opus_file" && echo "Metadata copied from $m4a_file to $opus_file"; else echo "No matching .m4a file for $opus_file, skipping..."; fi; done
+
+% navinaz, AMreinstallAll, AM, sysAdmin, reinstall, packages, system, maintenance
+# Force reinstall all AM packages
+for a in /opt/*; do [ -f "$a"/AM-updater ] && arg=$(basename "$a") && am -R "$arg" && am -i "$arg"; done
+
+% navinaz, dockerUpdateAll, docker, sysAdmin, containers, update, images, maintenance
+# Update all Docker images
+docker images | awk '{print $1":"$2}' | grep -v REPOSITORY | xargs -L 1 docker pull
+
+% navinaz, dockerCleanDangling, docker, sysAdmin, containers, cleanup, maintenance, images
+# Interactively remove all untagged/dangling Docker images
+docker images --filter "dangling=true" -q | xargs -r docker rmi --force
+
+% navinaz, dockerCleanDanglingInteractive, docker, sysAdmin, containers, cleanup, maintenance, images
+# Interactively remove all untagged/dangling Docker images with confirmation
+dangling_images=$(docker images --filter "dangling=true" -q); if [ -n "$dangling_images" ]; then echo "Will remove these dangling images:"; docker images --filter "dangling=true"; echo "Continue? (y/n)"; read confirm && [[ $confirm == [yY] ]] && docker rmi $dangling_images; else echo "No dangling images found."; fi
+
+% navinaz, tgpt, openai, ai, chat, model, cli, terminal, gpt
+# Export and use tgpt with AI provider and model
+export tptd_cmd='tgpt --provider openai --url "http://localhost:1337/api/<provider>/chat/completions" --model "<model_name>"'
+
+$ provider: curl -s "http://localhost:1337/v1/models" | grep -o '"id":"[^"]*","object":"model"[^}]*"provider":true' | sed 's/"id":"//;s/","object.*//g'
+$ provider_name: echo "<provider>"
+$ model_name: curl -s "http://localhost:1337/api/<provider>/models" | grep -o '"id":"[^"]*"' | sed 's/"id":"//g;s/"//g' --- --query "gpt-4o-mini" --preview-window hidden
+
+
