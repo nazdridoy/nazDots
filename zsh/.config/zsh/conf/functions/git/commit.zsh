@@ -13,14 +13,15 @@ gitcommsg() {
     local g4f_model=""
     local saved_provider=""
     local saved_model=""
+    local diff_file=""
 
     # Parse arguments first
     while [[ $# -gt 0 ]]; do
         case $1 in
             --help|-h)
                 # Help message display
-                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [-ml MODEL] [--g4f] [-pr PROVIDER]"
-                echo "Generate AI-powered commit messages from staged changes"
+                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [-ml MODEL] [--g4f] [-pr PROVIDER] [--diff FILE]"
+                echo "Generate AI-powered commit messages from staged changes or a diff file"
                 echo ""
                 echo "Options:"
                 echo "  -m, --message  Additional context or priority message"
@@ -31,6 +32,7 @@ gitcommsg() {
                 echo "                 Or specify model ID with --g4f"
                 echo "  --g4f         Use gpt4free interface via tptg"
                 echo "  -pr PROVIDER   Specify provider ID for gpt4free (requires --g4f)"
+                echo "  --diff FILE    Use diff from specified file instead of staged changes"
                 echo ""
                 echo "Available models:"
                 echo "  Online (default):"
@@ -49,6 +51,7 @@ gitcommsg() {
                 echo "  gitcommsg --tor -ml llama3.2:latest -m \"security fix\""
                 echo "  gitcommsg --g4f                  # uses interactive gpt4free selection"
                 echo "  gitcommsg --g4f -pr DDG -ml o3-mini # uses specific gpt4free provider/model"
+                echo "  gitcommsg --diff /tmp/changes.diff  # use external diff file"
                 return 0
                 ;;
             --g4f)
@@ -75,6 +78,19 @@ gitcommsg() {
                 ;;
             -c|--chunk)
                 chunk_mode=true
+                shift
+                ;;
+            --diff)
+                shift
+                if [[ -z "$1" || "$1" =~ ^- ]]; then
+                    echo "Error: --diff requires a file path argument"
+                    return 1
+                fi
+                if [[ ! -f "$1" ]]; then
+                    echo "Error: Diff file '$1' not found"
+                    return 1
+                fi
+                diff_file="$1"
                 shift
                 ;;
             -ml)
@@ -133,18 +149,21 @@ gitcommsg() {
         fi
     fi
 
-    # Check if in a Git repository
-    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        echo "Error: Not a Git repository. Run this command from a Git project root."
-        return 1
-    fi
+    # Skip git repo check if we're using a diff file
+    if [[ -z "$diff_file" ]]; then
+        # Check if in a Git repository
+        if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            echo "Error: Not a Git repository. Run this command from a Git project root."
+            return 1
+        fi
 
-    # Moved staged changes validation AFTER help check
-    if ! git diff --cached --quiet; then
-        : # Changes exist, continue
-    else
-        echo "Error: No staged changes found. Stage changes with 'git add' first."
-        return 1
+        # Check staged changes only when not using a diff file
+        if ! git diff --cached --quiet; then
+            : # Changes exist, continue
+        else
+            echo "Error: No staged changes found. Stage changes with 'git add' first."
+            return 1
+        fi
     fi
 
     # Validate context length if provided
@@ -510,7 +529,14 @@ Final message:"
     }
 
     # Capture diff and process
-    local diff_content=$(git diff --staged)
+    local diff_content
+    if [[ -n "$diff_file" ]]; then
+        diff_content=$(cat "$diff_file")
+        echo "Using diff from file: $diff_file"
+    else
+        diff_content=$(git diff --staged)
+    fi
+    
     if ! process_diff "$diff_content" "$template"; then
         # Clean up environment variables even on failure
         unset G4F_SELECTED_PROVIDER
