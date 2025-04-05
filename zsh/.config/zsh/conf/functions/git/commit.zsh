@@ -174,133 +174,89 @@ gitcommsg() {
 
     local context_prompt=""
     if [[ -n "$context" ]]; then
-        context_prompt="ABSOLUTE PRIORITY INSTRUCTION: \"$context\"
+        context_prompt=$(cat <<EOF
+ABSOLUTE PRIORITY INSTRUCTION: $context
 
 This user-provided context OVERRIDES any conflicting inference from the diff.
 You MUST:
-1. Use \"$context\" as the primary basis for the commit type and summary
+1. Use $context as the primary basis for the commit type and summary
 2. Only use the git diff to identify WHAT changed (files, functions, etc.)
-3. Focus bullet points on changes that support or relate to \"$context\"
-4. If the diff contains changes unrelated to \"$context\", still prioritize 
-   \"$context\"-related changes in your summary and bullets
+3. Focus bullet points on changes that support or relate to $context
+4. If the diff contains changes unrelated to $context, still prioritize 
+   $context-related changes in your summary and bullets
 5. Maintain the exact commit message format with proper types and detailed specifics
 
 IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
 based on the nature of that specific change, NOT necessarily the same type as the main commit.
-For example, a \"feat\" commit might include bullet points tagged as [feat], [fix], [refactor], etc.
+For example, a feat commit might include bullet points tagged as [feat], [fix], [refactor], etc.
 depending on the nature of each specific change.
 
-Example with context \"feat: login flow\":
-- Main commit type would be \"feat\"
+Example with context feat: login flow:
+- Main commit type would be feat
 - But bullet points might use different types like:
   [feat] Add new login page component
   [fix] Correct validation error in password field
   [style] Improve form layout for mobile devices
   [refactor] Separate authentication logic into its own module
 
-"
+EOF
+)
     fi
 
-    local template=''"$context_prompt"'   Analyze the following git diff and create a CONCISE but SPECIFIC commit message.
-Format the message as:
-type: <brief summary (max 50 chars)>
+    local template="$context_prompt   Analyze ONLY the exact changes in this git diff and create a precise, factual commit message.
 
-- [type] key change 1 (max 60 chars per line)
-- [type] key change 2
-- [type] key change N (include all significant changes)
+FORMAT:
+type: <concise summary> (max 50 chars)
 
-Valid types (choose most specific):
-- feat: New user features (not for new files without user features)
-- fix: Bug fixes/corrections to errors
-- refactor: Restructured code (no behavior change) 
-- style: Formatting/whitespace changes
+- [type] <specific change 1> (filename:function/method/line)
+- [type] <specific change 2> (filename:function/method/line)
+- [type] <additional changes...>
+
+COMMIT TYPES:
+- feat: New user-facing features
+- fix: Bug fixes or error corrections
+- refactor: Code restructuring (no behavior change)
+- style: Formatting/whitespace changes only
 - docs: Documentation only
 - test: Test-related changes
 - perf: Performance improvements
 - build: Build system changes
-- ci: CI pipeline changes
+- ci: CI/CD pipeline changes
 - chore: Routine maintenance tasks
 - revert: Reverting previous changes
-- add: New files/resources with no user-facing features
+- add: New files without user-facing features
 - remove: Removing files/code
 - update: Changes to existing functionality
 - security: Security-related changes
-- i18n: Internationalization
-- a11y: Accessibility improvements
-- api: API-related changes
-- ui: User interface changes
-- data: Database changes
 - config: Configuration changes
-- init: Initial commit/project setup
+- ui: User interface changes
+- api: API-related changes
 
-GIT DIFF INTERPRETATION:
-- The diff header "diff --git a/file1 b/file2" indicates files being compared
-- For modified files:
-  * "--- a/path" shows the original file (preimage)
-  * "+++ b/path" shows the modified file (postimage)
-- "@@" headers (e.g., "@@ -1,7 +1,6 @@") indicate line positions:
-  * First number pair (-1,7): start line,count in preimage
-  * Second number pair (+1,6): start line,count in postimage
-- Prefixes indicate line status:
-  * "+" lines are ADDED (appear in postimage only)
-  * "-" lines are REMOVED (appear in preimage only)
-  * " " lines are unchanged context (appear in both)
-- Special status indicators in raw/patch headers:
-  * "A": Addition of new file
-  * "D": Deletion of file
-  * "M": Modification to content/mode
-  * "R": Rename with optional percentage (e.g., "R86%")
-  * "C": Copy with similarity percentage
-  * "T": Type change (regular file/symlink/submodule)
-- For file mode changes, look for "mode change 100644 => 100755"
-- For renamed/copied files, look for "rename from/to" or "copy from/to"
-- Binary files show "Binary files differ" unless --binary option used
-- Extended headers may show "similarity index" for renames/copies
-- Index line shows blob hashes: "index fabadb8..4866510 100644"
+RULES:
+1. BE 100% FACTUAL - Mention ONLY code explicitly shown in the diff
+2. NEVER invent or assume changes not directly visible in the code
+3. EVERY bullet point MUST reference specific files/functions/lines
+4. Include ALL significant changes (do not skip any important modifications)
+5. If unsure about a change's purpose, describe WHAT changed, not WHY
+6. Keep summary line under 50 characters (mandatory)
+7. Use appropriate type tags for each change (main summary and each bullet)
+8. ONLY describe code that was actually changed
+9. Focus on technical specifics, avoid general statements
+10. Include proper technical details (method names, component identifiers, etc.)
 
-Rules:
-1. FIRST carefully analyze what exactly changed in the diff:
-   - Look at the --- and +++ lines to identify files
-   - Examine "-" and "+" lines to understand exact changes
-   - For modified lines, compare them directly
-   - For code moves, notice similar patterns in different locations
-2. Prefer specific types over generic ones (avoid "update" when something more specific applies)
-3. If adding new file with user features, use "feat"; without user features use "add"
-4. If text is edited, use "refactor" for logic changes or "style" for formatting
-5. When removing something, check if it is deleted or moved elsewhere
-6. For configuration files, prefer "config" over "update"
-7. Keep summary under 50 chars (MANDATORY)
-8. ALWAYS include specific details in each bullet point:
-   - Filename (required - e.g., "auth/login.js")
-   - Function name where applicable (e.g., "validateUser()")
-   - Line number range if relevant (e.g., "lines 45-60")
-   - Class name if OOP code (e.g., "UserAuth class")
+IMPORTANT: If you receive partial analyses instead of a raw git diff, use ONLY that information to create your commit message. 
+Do not ask for the original git diff - the partial analyses already contain all necessary information.
 
-IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
-based on the nature of that specific change, NOT necessarily the same type as the main commit.
-For example, a "feat" commit might include bullet points tagged as [feat], [fix], [refactor], etc.
-depending on the nature of each specific change.
+EXAMPLE:
+Given a diff showing error handling added to auth.js and timeout changes in config.json:
 
-Example with context \"feat: login flow\":
-- Main commit type would be \"feat\"
-- But bullet points might use different types like:
-  [feat] Add new login page component
-  [fix] Correct validation error in password field
-  [style] Improve form layout for mobile devices
-  [refactor] Separate authentication logic into its own module
+fix: Improve authentication error handling
 
-EXAMPLE OUTPUT:
-Given a diff where user-auth.js has error handling added and config.json timeout value changed:
-
-fix: Improve auth error handling and increase timeout
-
-- [feat] Add new login page component
-- [fix] Add try/catch in user-auth.js:authenticateUser()
-- [fix] Handle network errors in user-auth.js:loginCallback()
+- [fix] Add try/catch in auth.js:authenticateUser()
+- [fix] Handle network timeouts in auth.js:loginCallback()
 - [config] Increase API timeout from 3000ms to 5000ms in config.json
 
-Git diff to analyze:
-{}'
+Git diff or partial analyses to process:"
 
     local process_diff() {
         local diff_input="$1"
@@ -395,13 +351,22 @@ Git diff to analyze:
             for chunk in "$temp_dir"/chunk_*; do
                 echo "\n=== CHUNK $i/$chunk_count ==="
                 echo "Raw diff lines: $(wc -l < "$chunk")"
-                local chunk_template="Analyze this PARTIAL git diff and create a commit message summary with this exact format:
-[FILES]: Comma-separated affected files
-[CHANGES]: Bullet points of technical changes (max 3)
-[IMPACT]: One line describing user-facing impact
+                local chunk_template="Analyze this PARTIAL git diff and create a detailed technical summary with this EXACT format:
 
-Diff chunk:\n{}"
-                
+[FILES]: Comma-separated list of affected files with full paths
+[CHANGES]: 
+- Technical detail 1 (include function/method names, specific line changes)
+- Technical detail 2 (be precise about what code was added/modified/removed)
+- Additional technical details (include ALL significant changes in this chunk)
+[IMPACT]: Brief technical description of what the changes accomplish
+
+IMPORTANT: Be extremely specific and factual. Only describe code that actually changed.
+Include exact function/method names, variable names, and other technical identifiers.
+Focus on HOW the code changed, not speculation about WHY.
+
+Diff chunk:
+"
+
                 echo "\n🚧 Partial analysis:"
                 local max_retries=3
                 local retry_count=0
@@ -415,16 +380,16 @@ Diff chunk:\n{}"
                     if $use_tor && ! $use_g4f; then
                         # G4F doesn't support tor directly
                         if [[ ${#ai_args[@]} -gt 0 ]]; then
-                            $ai_cmd --tor "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                            { echo "$chunk_template"; cat "$chunk"; } | $ai_cmd --tor "${ai_args[@]}" | tee "$tmpfile"
                         else
-                            $ai_cmd --tor "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                            { echo "$chunk_template"; cat "$chunk"; } | $ai_cmd --tor "$model" | tee "$tmpfile"
                         fi
                     else
                         # Normal execution with saved args
                         if [[ ${#ai_args[@]} -gt 0 ]]; then
-                            $ai_cmd "${ai_args[@]}" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                            { echo "$chunk_template"; cat "$chunk"; } | $ai_cmd "${ai_args[@]}" | tee "$tmpfile"
                         else
-                            $ai_cmd "$model" "$chunk_template" < "$chunk" | tee "$tmpfile"
+                            { echo "$chunk_template"; cat "$chunk"; } | $ai_cmd "$model" | tee "$tmpfile"
                         fi
                         cmd_status=${pipestatus[1]}
                     fi
@@ -479,16 +444,29 @@ Diff chunk:\n{}"
             
             # Combine partial results
             echo "\n🔨 Combining partial analyses..."
-            local combine_template="Synthesize this commit message from partial analyses (iteration $((recursion_depth + 1))):
-$(cat "$temp_dir/partials.txt")
+            
+            # Read the partial analyses
+            local partial_analyses=$(cat "$temp_dir/partials.txt")
+            
+            # Create combine template as a regular string
+            local combine_template="IMPORTANT: The following text contains YOUR OWN PREVIOUS ANALYSES of git diff chunks. 
+These analyses already summarize the actual git diff content that you analyzed earlier.
+DO NOT ask for the original git diff - it is not needed.
 
-Rules:
-1. Group changes by category (docs, feat, fix, etc)
-2. Prioritize user-facing changes
-3. Keep bullets under 60 chars
-4. Follow conventional commit format
+Your task is to synthesize these partial analyses into a complete commit message:
+$partial_analyses
 
-Final message:"
+Use ONLY the information in these partial analyses to create a conventional commit message:
+1. First line: \"type: brief summary\" (50 chars max)
+2. One blank line
+3. Bullet points with specific changes, each with appropriate [type] tag
+4. Reference files, functions, and components that were changed
+
+STRICTLY follow the commit message format specified in your instructions.
+DO NOT include any explanation, questions, or reference to missing diff content.
+
+Final commit message:"
+            
             diff_input="$combine_template"
             
             # Recursive chunking for large messages
@@ -512,18 +490,39 @@ Final message:"
         echo "\n🎉 Final commit message generation..."
         # Final command execution with tor support or g4f
         if $use_g4f; then
-            $ai_cmd -pr "$saved_provider" -ml "$saved_model" "$template" <<< "$diff_input"
+            # Create a temporary file with the template and diff content
+            local temp_prompt_file=$(mktemp)
+            echo "$template" > "$temp_prompt_file"
+            echo "$diff_input" >> "$temp_prompt_file"
+            $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$temp_prompt_file"
+            rm -f "$temp_prompt_file"
         elif $use_tor; then
             if $use_nazapi; then
-                $ai_cmd --tor "${ai_args[@]}" "$template" <<< "$diff_input"
+                local temp_prompt_file=$(mktemp)
+                echo "$template" > "$temp_prompt_file"
+                echo "$diff_input" >> "$temp_prompt_file"
+                $ai_cmd --tor "${ai_args[@]}" < "$temp_prompt_file"
+                rm -f "$temp_prompt_file"
             else
-                $ai_cmd --tor "$model" "$template" <<< "$diff_input"
+                local temp_prompt_file=$(mktemp)
+                echo "$template" > "$temp_prompt_file"
+                echo "$diff_input" >> "$temp_prompt_file"
+                $ai_cmd --tor "$model" < "$temp_prompt_file"
+                rm -f "$temp_prompt_file"
             fi
         else
             if $use_nazapi; then
-                $ai_cmd "${ai_args[@]}" "$template" <<< "$diff_input"
+                local temp_prompt_file=$(mktemp)
+                echo "$template" > "$temp_prompt_file"
+                echo "$diff_input" >> "$temp_prompt_file"
+                $ai_cmd "${ai_args[@]}" < "$temp_prompt_file"
+                rm -f "$temp_prompt_file"
             else
-                $ai_cmd "$model" "$template" <<< "$diff_input"
+                local temp_prompt_file=$(mktemp)
+                echo "$template" > "$temp_prompt_file"
+                echo "$diff_input" >> "$temp_prompt_file"
+                $ai_cmd "$model" < "$temp_prompt_file"
+                rm -f "$temp_prompt_file"
             fi
         fi
     }
