@@ -212,6 +212,13 @@ type: <concise summary> (max 50 chars)
 - [type] <specific change 2> (filename:function/method/line)
 - [type] <additional changes...>
 
+RULES FOR FILENAMES:
+1. Use short relative paths when possible
+2. For multiple changes to the same file, consider grouping them
+3. Abbreviate long paths when they're repeated (e.g., 'commit.zsh' instead of full path)
+4. Avoid breaking filenames across lines
+5. Only include function names when they add clarity
+
 COMMIT TYPES:
 - feat: New user-facing features
 - fix: Bug fixes or error corrections
@@ -243,6 +250,7 @@ RULES:
 8. ONLY describe code that was actually changed
 9. Focus on technical specifics, avoid general statements
 10. Include proper technical details (method names, component identifiers, etc.)
+11. When all changes are to the same file, mention it once in the summary
 
 IMPORTANT: If you receive partial analyses instead of a raw git diff, use ONLY that information to create your commit message. 
 Do not ask for the original git diff - the partial analyses already contain all necessary information.
@@ -380,15 +388,18 @@ Section to summarize:"
                     chunk_template="Analyze this PARTIAL git diff and create a detailed technical summary with this EXACT format:
 
 [FILES]: Comma-separated list of affected files with full paths
+
 [CHANGES]: 
-- Technical detail 1 (include function/method names, specific line changes)
-- Technical detail 2 (be precise about what code was added/modified/removed)
+- Technical detail 1 (include specific function/method names and line numbers)
+- Technical detail 2 (be precise about exactly what code was added/modified/removed)
 - Additional technical details (include ALL significant changes in this chunk)
+
 [IMPACT]: Brief technical description of what the changes accomplish
 
-IMPORTANT: Be extremely specific and factual. Only describe code that actually changed.
-Include exact function/method names, variable names, and other technical identifiers.
-Focus on HOW the code changed, not speculation about WHY.
+CRITICALLY IMPORTANT: Be extremely specific with technical details.
+ALWAYS identify exact function names, method names, class names, and line numbers where possible.
+Use format 'filename:function_name()' or 'filename:line_number' when referencing code locations.
+Be precise and factual - only describe code that actually changed.
 
 Diff chunk:"
                 fi
@@ -497,12 +508,21 @@ Create a CONVENTIONAL COMMIT MESSAGE with:
 1. First line: \"type: brief summary\" (50 chars max)
 2. One blank line
 3. Bullet points with specific changes, each with appropriate [type] tag
-4. ALWAYS reference specific files and functions in EACH bullet point
+4. Reference files in EACH bullet point with function names or line numbers
+
+FILENAME & FUNCTION HANDLING RULES:
+- Include SPECIFIC function names, method names, or line numbers when available
+- Format as filename:function() or filename:line_number
+- Use short relative paths for files (e.g., 'Provider/Chatai.py' instead of 'g4f/Provider/Chatai.py')
+- Group related changes to the same file when appropriate
+- Avoid breaking long filenames across lines
 
 EXAMPLES OF GOOD BULLETS:
-- [refactor] Update model function signature in src/models.py:process_input()
+- [refactor] Update model function signature in models.py:process_input()
 - [fix] Correct parameter validation in api/endpoints.js:validateUser()
-- [docs] Add parameter descriptions for auth/login.py:authenticate()
+- [fix] Correct parameter validation in auth.js:validateUser()
+- [docs] Add parameter descriptions for login.py:authenticate()
+- [feat] Add new provider implementation (Provider/Chatai.py)
 
 STRICTLY follow this format with NO EXPLANATION or additional commentary.
 DO NOT mention insufficient information or ask for the original diff.
@@ -532,6 +552,13 @@ type: <concise summary> (max 50 chars)
 - [type] <specific change 1> (filename:function/method/line)
 - [type] <specific change 2> (filename:function/method/line)
 - [type] <additional changes...>
+
+FUNCTION & LINE REFERENCE RULES:
+- PRESERVE specific function names, method names, or line numbers from the analyses
+- Use format: filename:function_name() or filename:line_number
+- Keep detailed technical references intact
+- Use short paths for filenames when appropriate
+- Group related changes when they affect the same file
 
 STRICTLY follow this format. Do NOT ask for raw git diff - work with the summaries provided.
 DO NOT include any explanation or comments outside the commit message format.
