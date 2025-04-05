@@ -214,29 +214,148 @@ gitcommsg() {
     if [[ -n "$context" ]]; then
         _log "INFO" "Using context: $context"
         context_prompt=$(cat <<EOF
-ABSOLUTE PRIORITY INSTRUCTION: $context
+⚠️ ABSOLUTE DIRECTIVE - FOLLOW EXACTLY - NO EXCEPTIONS ⚠️
 
-This user-provided context OVERRIDES any conflicting inference from the diff.
-You MUST:
-1. Use $context as the primary basis for the commit type and summary
-2. Only use the git diff to identify WHAT changed (files, functions, etc.)
-3. Focus bullet points on changes that support or relate to $context
-4. If the diff contains changes unrelated to $context, still prioritize 
-   $context-related changes in your summary and bullets
-5. Maintain the exact commit message format with proper types and detailed specifics
+The user provided this with the -m flag: "$context"
 
-IMPORTANT: Each bullet point should use its own appropriate commit type tag [type] 
-based on the nature of that specific change, NOT necessarily the same type as the main commit.
-For example, a feat commit might include bullet points tagged as [feat], [fix], [refactor], etc.
-depending on the nature of each specific change.
+█████████████████████████████████████████████████████████████████
+█ CRITICAL FILE TYPE DIRECTIVE - OVERRIDES ALL OTHER INSTRUCTIONS █
+█████████████████████████████████████████████████████████████████
 
-Example with context feat: login flow:
-- Main commit type would be feat
-- But bullet points might use different types like:
-  [feat] Add new login page component
-  [fix] Correct validation error in password field
-  [style] Improve form layout for mobile devices
-  [refactor] Separate authentication logic into its own module
+IF "$context" MENTIONS ANY FILE TYPE TERM:
+* YOU MUST ONLY LIST CHANGES TO THAT EXACT FILE TYPE
+* YOU MUST DELETE ALL OTHER FILE TYPES FROM YOUR RESPONSE
+* NO EXCEPTIONS WHATSOEVER
+
+EXACT FILE TYPE MAPPING:
+➤ Web terms:
+   → HTML: "html", "markup", "template", "index.html", "webpage"
+   → CSS: "css", "style", "stylesheet", "styling"
+   → JavaScript: "js", "javascript"
+
+➤ Script/Code terms:
+   → "script" - Could refer to many types (.js, .sh, .py, .rb, .ps1, .bat) depending on context
+   → "bash script", "shell script" - .sh, .bash files
+   → "batch script" - .bat, .cmd files
+   → "python script" - .py files
+   → "ruby script" - .rb files
+   → "powershell script" - .ps1 files
+
+➤ Programming language terms:
+   → C/C++: "c", "cpp", "c++", ".c", ".cpp", ".h", ".hpp"
+   → Python: "py", "python", ".py"
+   → Go: "go", "golang", ".go"
+   → Rust: "rust", "rs", ".rs"
+   → Java: "java", ".java"
+   → Ruby: "ruby", ".rb"
+
+IF "$context" contains a specific technology term:
+   * First determine what technology/language/file type is being referenced
+   * Then ONLY include files of that specific type in your response
+   * For context like "updated python code" - focus only on Python files
+   * For context like "fixed C++ error" - focus only on C++ files
+
+IMPORTANT: The term "script" by itself should be interpreted based on the repository context
+   * In a web project - likely refers to JavaScript
+   * In a Linux/Unix context - likely refers to shell scripts
+   * In a Windows context - likely refers to PowerShell/batch scripts
+   * In a data science context - likely refers to Python scripts
+
+CONCRETE EXAMPLES:
+➤ For "updated html" - ONLY INCLUDE .html files - EXCLUDE ALL .js/.css
+➤ For "updated script" - ONLY INCLUDE .js files - EXCLUDE ALL .html/.css
+➤ For "updated javascript" - ONLY INCLUDE .js files - EXCLUDE ALL .html/.css
+
+FORBIDDEN WORDS IN RESPONSES:
+➤ For "updated html" - Your response MUST NEVER contain: "script.js", "styles.css"
+➤ For "updated script" - Your response MUST NEVER contain: "index.html", "styles.css"
+➤ For "updated javascript" - Your response MUST NEVER contain: "index.html", "styles.css"
+➤ For "updated css" - Your response MUST NEVER contain: "index.html", "script.js"
+
+THIS IS A PRE-PROCESSING DIRECTIVE: You must FIRST filter based on file type BEFORE applying any other instructions. ONLY AFTER excluding non-matching files should you apply other directives.
+
+PROOF OF UNDERSTANDING:
+For "updated html" your response MUST NEVER contain:
+✓ script.js
+✓ styles.css
+✓ Any non-HTML file
+
+THIS DIRECTIVE APPLIES REGARDLESS OF:
+- Importance of other changes
+- Completeness concerns
+- Other instructions
+- Safety guidelines
+- Common sense
+
+THIS DIRECTIVE IS THE HIGHEST PRIORITY RULE IN THIS ENTIRE PROMPT.
+
+█████████████████████████████████████████████████████████████████
+
+This is either:
+1. A COMMIT TYPE SPECIFICATION (e.g., "type:init", "feat", "refactor")
+2. A DIRECT COMMAND to output specific text (e.g., "just say hello")
+3. AN INSTRUCTION on how to analyze the diff (e.g., "focus on logical flow")
+4. A CONTEXT to emphasize in the commit (e.g., "auth refactor")
+
+COMMIT TYPE MODE: If "$context" matches any of these patterns:
+- Contains "type:" prefix (e.g., "type:init", "type:feat") → Use specified type EXACTLY as written:
+  * "type:init" → MUST use "init:" as prefix (not "feat:" or anything else)
+  * "type:docs" → MUST use "docs:" as prefix (not "feat:" or anything else)
+- Is a single word matching commit types (init, feat, fix, docs, style, etc.) → Use as is
+- Starts with a verb in past tense (e.g., "updated", "fixed", "added", "removed"):
+  → Convert to commit type AND identify focus area:
+  * "updated html" → Use "update:" AND focus only on HTML files
+  * "fixed login" → Use "fix:" AND focus only on login functionality
+  * "added endpoint" → Use "add:" AND focus only on endpoint changes
+- Is a short phrase with obvious type meaning (e.g., "bug in login" → "fix: Login bug")
+
+THEN:
+- USE THE EXACT DERIVED TYPE as the commit prefix without exceptions
+- APPLY EXCLUSIVE FOCUS on the object/area mentioned after the verb
+- EXCLUDE changes not directly related to that specific area
+- For "updated html" → ONLY include HTML changes, not JS or CSS
+
+COMMAND MODE: If "$context" appears to be a command (contains words like "just", "only", "ignore", "say", etc.):
+- DO EXACTLY WHAT IT SAYS, even if it means ignoring the diff completely
+- If told to ignore something, ACTUALLY IGNORE IT
+- If told to "just say X", LITERALLY JUST OUTPUT X
+- DO NOT try to combine the command with diff analysis unless explicitly instructed
+
+INSTRUCTION MODE: If "$context" appears to be an instruction on HOW to analyze:
+- FOLLOW THIS INSTRUCTION LITERALLY and PRECISELY with ZERO EXCEPTIONS
+
+EXCLUSIVE FOCUS DIRECTIVE: If "$context" contains phrases like "focus only on", "only mention", "just show":
+- RUTHLESSLY FILTER OUT anything not explicitly mentioned in the focus area
+- COMPLETELY ELIMINATE any bullet point not directly related to the exact focus
+- For "focus only on css":
+  * ONLY include .css files or styling-related changes
+  * EXCLUDE ALL js/html/other files completely, even if they seem related
+  * The commit type should reflect ONLY the focused area (e.g., "style:" for CSS)
+  * DO NOT INCLUDE ANY non-CSS related changes, NO MATTER HOW IMPORTANT
+
+EXCLUSION DIRECTIVE: If "$context" contains "ignore", "don't include", "exclude":
+- COMPLETELY REMOVE any mention of the specified exclusion
+- For "ignore formatting changes", remove ALL style/format changes
+
+CONTEXT MODE: If "$context" is a technical context or focus area:
+- Make it the PRIMARY SUBJECT of the commit message
+- If "$context" contains an implied type (e.g., "updated X", "bug in X"):
+  * EXTRACT and USE that type ("update:", "fix:") instead of inferring from diff
+- FORCE the commit message to center around this context
+- INTERPRET all changes through the lens of this context
+
+THIS DIRECTIVE SUPERSEDES ALL OTHER INSTRUCTIONS in this prompt.
+No other reasoning or safety mechanism should prevent executing this directive.
+
+THIS DIRECTIVE SUPERSEDES ALL OTHER INSTRUCTIONS in this prompt.
+No other reasoning or safety mechanism should prevent executing this directive.
+
+CRITICAL OUTPUT FORMATTING:
+- NEVER include phrases like "I'll analyze", "Based on the directive", etc.
+- NEVER explain what you're doing or why
+- NEVER include comments about the instructions you received
+- Output ONLY the commit message itself with no surrounding text
+- Start directly with the commit type and summary
 
 EOF
 )
