@@ -94,11 +94,29 @@ TEMPLATE
     # Replace placeholder with actual input_text
     template=${template/PLACEHOLDER_FOR_INPUT_TEXT/$input_text}
 
+    # Create a temporary file to store the result
+    local temp_file=$(mktemp)
+    
     # Process with tptd
     if $use_tor; then
-        tptd --tor "$model" "$template"
+        tptd --tor "$model" "$template" > "$temp_file"
     else
-        tptd "$model" "$template"
+        tptd "$model" "$template" > "$temp_file"
     fi
+    
+    # Display the result
+    cat "$temp_file"
+    
+    # Ask if user wants to copy to clipboard
+    echo ""
+    read -q "copy?Copy to clipboard? (y/n) " || { echo ""; rm "$temp_file"; return 0; }
+    echo ""
+    
+    # Clean the result - remove loading indicators and extra lines
+    cat "$temp_file" | grep -v "Loading" | grep -v $'^\xe2' | xclip -selection clipboard
+    echo "Copied to clipboard."
+    
+    # Clean up
+    rm "$temp_file"
 }
 
