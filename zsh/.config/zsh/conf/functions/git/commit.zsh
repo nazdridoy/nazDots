@@ -28,6 +28,19 @@ gitcommsg() {
         fi
     }
 
+    # Log file contents
+    _log_file_contents() {
+        local level="$1"
+        local description="$2"
+        local filepath="$3"
+        
+        if $enable_logging && [[ -f "$filepath" ]]; then
+            _log "$level" "===== BEGIN $description: $filepath ====="
+            cat "$filepath" >> "$log_file"
+            _log "$level" "===== END $description: $filepath ====="
+        fi
+    }
+
     # Parse arguments first
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -230,6 +243,7 @@ EOF
         _log "DEBUG" "Generated context_prompt with $(echo "$context_prompt" | wc -l) lines"
     fi
 
+    # Create initial template
     local template="$context_prompt   Analyze ONLY the exact changes in this git diff and create a precise, factual commit message.
 
 FORMAT:
@@ -292,6 +306,13 @@ fix: Improve authentication error handling
 - [config] Increase API timeout from 3000ms to 5000ms in config.json
 
 Git diff or partial analyses to process:"
+
+    if $enable_logging; then
+        local tmp_initial_template=$(mktemp)
+        echo "$template" > "$tmp_initial_template"
+        _log_file_contents "DEBUG" "INITIAL_TEMPLATE" "$tmp_initial_template"
+        rm -f "$tmp_initial_template"
+    fi
 
     local process_diff() {
         local diff_input="$1"
@@ -451,6 +472,13 @@ Diff chunk:"
                     _log "INFO" "Using initial chunking template"
                 fi
                 
+                if $enable_logging; then
+                    local tmp_chunk_template=$(mktemp)
+                    echo "$chunk_template" > "$tmp_chunk_template"
+                    _log_file_contents "DEBUG" "CHUNK_TEMPLATE_DEPTH_${recursion_depth}" "$tmp_chunk_template"
+                    rm -f "$tmp_chunk_template"
+                fi
+                
                 echo "\n🚧 Partial analysis:"
                 local max_retries=3
                 local retry_count=0
@@ -461,6 +489,7 @@ Diff chunk:"
                 printf "%s\n\n" "$chunk_template" > "$prompt_file"
                 cat "$chunk" >> "$prompt_file"
                 _log "DEBUG" "Created prompt file: $prompt_file with $(wc -l < "$prompt_file") lines"
+                _log_file_contents "DEBUG" "PROMPT_FILE" "$prompt_file"
                 
                 while true; do
                     local tmpfile=$(mktemp)
@@ -490,6 +519,7 @@ Diff chunk:"
                     if [ $cmd_status -eq 0 ]; then
                         _log "INFO" "Command executed successfully"
                         cat "$tmpfile" >> "$temp_dir/partials.txt"
+                        _log_file_contents "DEBUG" "OUTPUT_FILE" "$tmpfile"
                         # Clean up temporary files
                         rm -f "$prompt_file" "$tmpfile"
                         break
@@ -545,6 +575,10 @@ Diff chunk:"
             _log "INFO" "Collected $(grep -c "^" "$temp_dir/partials.txt") lines of partial analyses"
             cat "$temp_dir/partials.txt"
             
+            if $enable_logging; then
+                _log_file_contents "DEBUG" "COLLECTED_PARTIALS" "$temp_dir/partials.txt"
+            fi
+            
             # Combine partial results
             echo "\n🔨 Combining partial analyses..."
             _log "INFO" "Starting combination of partial analyses"
@@ -586,6 +620,13 @@ DO NOT mention insufficient information or ask for the original diff.
 
 Final commit message:"
             
+            if $enable_logging; then
+                local tmp_combine=$(mktemp)
+                echo "$combine_template" > "$tmp_combine"
+                _log_file_contents "DEBUG" "COMBINE_TEMPLATE" "$tmp_combine"
+                rm -f "$tmp_combine"
+            fi
+            
             diff_input="$combine_template"
             _log "DEBUG" "Created combine template with $(echo "$combine_template" | wc -l) lines"
             
@@ -624,6 +665,13 @@ DO NOT include any explanation or comments outside the commit message format.
 
 Partial analyses to synthesize:"
 
+                    if $enable_logging; then
+                        local tmp_rechunk=$(mktemp)
+                        echo "$rechunk_template" > "$tmp_rechunk"
+                        _log_file_contents "DEBUG" "RECHUNK_TEMPLATE" "$tmp_rechunk"
+                        rm -f "$tmp_rechunk"
+                    fi
+
                     echo "\n===== RECHUNKING LEVEL $recursion_depth ====="
                     _log "INFO" "Starting re-chunking at depth $recursion_depth"
                     
@@ -632,16 +680,32 @@ Partial analyses to synthesize:"
                     echo "$diff_input" | head -n 20
                     echo "... (total ${msg_length} lines)"
                     _log "DEBUG" "Processing combined analyses with $msg_length lines"
+                    local tmp_analyses=$(mktemp)
+                    echo "$diff_input" > "$tmp_analyses"
+                    _log_file_contents "DEBUG" "COMBINED_ANALYSES" "$tmp_analyses"
+                    rm -f "$tmp_analyses"
                     
                     # Process the long message as new input with the special template
                     echo "\n🔄 Generating new synthesis..."
                     _log "INFO" "Generating new synthesis at depth $recursion_depth"
                     local result=$(process_diff "$diff_input" "$rechunk_template")
                     
+                    # Log the result
+                    if $enable_logging; then
+                        local tmp_result_file=$(mktemp)
+                        echo "$result" > "$tmp_result_file"
+                        _log_file_contents "DEBUG" "API_RESULT_DEPTH_${recursion_depth}" "$tmp_result_file"
+                        rm -f "$tmp_result_file"
+                    fi
+                    
                     # Show the result
                     echo "\n📋 Rechunking result:"
                     echo "$result"
                     _log "DEBUG" "Rechunking result: $(echo "$result" | wc -l) lines"
+                    local tmp_result=$(mktemp)
+                    echo "$result" > "$tmp_result"
+                    _log_file_contents "DEBUG" "RECHUNKING_RESULT" "$tmp_result"
+                    rm -f "$tmp_result"
                     
                     # Update diff_input for next iteration
                     diff_input="$result"
@@ -661,6 +725,7 @@ Partial analyses to synthesize:"
         echo "$template" > "$final_prompt_file"
         echo "$diff_input" >> "$final_prompt_file"
         _log "DEBUG" "Created final prompt file with $(wc -l < "$final_prompt_file") lines"
+        _log_file_contents "DEBUG" "FINAL_PROMPT_FILE" "$final_prompt_file"
         
         local result=""
         
@@ -718,6 +783,14 @@ Partial analyses to synthesize:"
         if (( recursion_depth > 0 )); then
             _log "INFO" "Returning result from recursion depth $recursion_depth"
             echo "$result"
+        else
+            # Log the final result when not in recursion mode
+            if $enable_logging && [[ -n "$result" ]]; then
+                local final_result_file=$(mktemp)
+                echo "$result" > "$final_result_file"
+                _log_file_contents "INFO" "FINAL_RESULT" "$final_result_file"
+                rm -f "$final_result_file"
+            fi
         fi
     }
 
@@ -727,9 +800,21 @@ Partial analyses to synthesize:"
         diff_content=$(cat "$diff_file")
         echo "Using diff from file: $diff_file"
         _log "INFO" "Using diff from file: $diff_file ($(echo "$diff_content" | wc -l) lines)"
+        if $enable_logging; then
+            local tmp_diff=$(mktemp)
+            echo "$diff_content" > "$tmp_diff"
+            _log_file_contents "DEBUG" "INITIAL_DIFF" "$tmp_diff"
+            rm -f "$tmp_diff"
+        fi
     else
         diff_content=$(git diff --staged)
         _log "INFO" "Using staged changes ($(echo "$diff_content" | wc -l) lines)"
+        if $enable_logging; then
+            local tmp_diff=$(mktemp)
+            echo "$diff_content" > "$tmp_diff"
+            _log_file_contents "DEBUG" "INITIAL_DIFF" "$tmp_diff"
+            rm -f "$tmp_diff"
+        fi
     fi
     
     _log "INFO" "Starting commit message generation with options: model=$model, chunk_mode=$chunk_mode, recursive_chunk=$recursive_chunk, use_tor=$use_tor, use_nazapi=$use_nazapi, use_g4f=$use_g4f"
