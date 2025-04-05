@@ -57,41 +57,37 @@ rewrite() {
 
     local template
     template=$(cat << 'TEMPLATE'
-Rewrite the following text to be more natural and grammatically correct.
-Important rules:
-1. Preserve the original tone (angry, happy, sorry, formal, etc)
-2. Fix grammar and spelling errors
-3. Make it flow more naturally
-4. Keep the same meaning and intent
-5. Do not change the level of politeness/rudeness
-6. Do not add or remove main points
-7. Specific guidelines:
-   a. Convert passive voice to active voice where appropriate
-   b. Break up long sentences (max 25 words) but maintain pacing
-   c. Replace jargon with simpler terms when possible
-   d. Maintain technical terms when crucial to meaning
-   e. Fix misplaced modifiers and dangling participles
-   f. Ensure pronoun references are clear
-   g. Keep lists parallel in structure
-   h. Preserve any markdown/code formatting
-8. Handle special cases:
-   - Preserve code samples between ``` unchanged
-   - Maintain quoted text integrity
-   - Keep placeholders like {variable} intact
-   - Preserve URLs and email addresses
-   - Maintain original paragraph breaks and newlines
-   - Only remove line breaks if they create awkward spacing
-   - Preserve list formatting (bullets/numbers)
-   - Keep related ideas in the same paragraph
+Rewrite the following text to sound natural while maintaining its original character.
 
-Examples of GOOD rewrites:
-Original: "The system, it should be noted, when in operation, may experience lags."
-Rewritten: "The system might experience delays during operation."
+RULES:
+1. Preserve: original tone, intent, meaning, politeness level, rudeness level, technical terms, formatting
+2. Improve: grammar, spelling, flow, clarity, readability
+3. Convert passive voice to active when appropriate
+4. Break up sentences longer than 25 words
+5. Replace unnecessarily complex language with simpler alternatives
+6. Remove redundancies and filler words
 
-Original: "We was planning to done the task yesterday but it weren't possible."
-Rewritten: "We had planned to complete the task yesterday, but it wasn't possible."
+FORMAT PRESERVATION:
+- Keep code blocks (```) exactly as they appear
+- Maintain paragraph breaks and list structures
+- Preserve URLs, email addresses, file paths, and variables like {placeholder}
+- Respect original markdown formatting
 
-Text to rewrite: PLACEHOLDER_FOR_INPUT_TEXT
+WHAT TO AVOID:
+- Don't add new information or remove key points
+- Don't change the formality level
+- Don't insert your own commentary
+- Don't explain what you changed
+
+EXAMPLES:
+ORIGINAL: "The implementation of the feature, which was delayed due to unforeseen technical complications, is now scheduled for next week's release."
+BETTER: "We delayed the feature implementation due to unforeseen technical complications. It's now scheduled for next week's release."
+
+ORIGINAL: "We was hoping you could help with this issue what we are having with the server."
+BETTER: "We were hoping you could help with this issue we're having with the server."
+
+TEXT TO REWRITE:
+PLACEHOLDER_FOR_INPUT_TEXT
 TEMPLATE
 )
 
