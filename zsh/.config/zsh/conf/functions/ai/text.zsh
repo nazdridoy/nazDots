@@ -51,6 +51,10 @@ rewrite() {
         return 1
     fi
 
+    # Capture stdin input
+    local input_text
+    input_text=$(cat)
+
     local template="Rewrite the following text to be more natural and grammatically correct.
 Important rules:
 1. Preserve the original tone (angry, happy, sorry, formal, etc)
@@ -85,7 +89,7 @@ Rewritten: \"The system might experience delays during operation.\"
 Original: \"We was planning to done the task yesterday but it weren't possible.\"
 Rewritten: \"We had planned to complete the task yesterday, but it wasn't possible.\"
 
-Text to rewrite: {}"
+Text to rewrite: $input_text"
 
     # Process with tptd
     if $use_tor; then
