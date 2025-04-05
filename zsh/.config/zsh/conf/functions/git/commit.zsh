@@ -14,13 +14,26 @@ gitcommsg() {
     local saved_provider=""
     local saved_model=""
     local diff_file=""
+    local enable_logging=false
+    local log_file="/tmp/gitcommsg_$(date +%Y%m%d_%H%M%S).log"
+
+    # Internal logging function
+    _log() {
+        local level="$1"
+        local message="$2"
+        local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+        
+        if $enable_logging; then
+            echo "[$timestamp] [$level] $message" >> "$log_file"
+        fi
+    }
 
     # Parse arguments first
     while [[ $# -gt 0 ]]; do
         case $1 in
             --help|-h)
                 # Help message display
-                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [-ml MODEL] [--g4f] [-pr PROVIDER] [--diff FILE]"
+                echo "Usage: gitcommsg [model] [-m message] [-c] [-cc] [--tor] [-ml MODEL] [--g4f] [-pr PROVIDER] [--diff FILE] [--log]"
                 echo "Generate AI-powered commit messages from staged changes or a diff file"
                 echo ""
                 echo "Options:"
@@ -33,6 +46,7 @@ gitcommsg() {
                 echo "  --g4f         Use gpt4free interface via tptg"
                 echo "  -pr PROVIDER   Specify provider ID for gpt4free (requires --g4f)"
                 echo "  --diff FILE    Use diff from specified file instead of staged changes"
+                echo "  --log         Create detailed debug log file for troubleshooting"
                 echo ""
                 echo "Available models:"
                 echo "  Online (default):"
@@ -52,6 +66,7 @@ gitcommsg() {
                 echo "  gitcommsg --g4f                  # uses interactive gpt4free selection"
                 echo "  gitcommsg --g4f -pr DDG -ml o3-mini # uses specific gpt4free provider/model"
                 echo "  gitcommsg --diff /tmp/changes.diff  # use external diff file"
+                echo "  gitcommsg --log                  # create detailed debug log"
                 return 0
                 ;;
             --g4f)
@@ -60,6 +75,11 @@ gitcommsg() {
                 ;;
             --tor)
                 use_tor=true
+                shift
+                ;;
+            --log)
+                enable_logging=true
+                echo "Logging enabled. Log file: $log_file"
                 shift
                 ;;
             -m|--message)
@@ -145,6 +165,7 @@ gitcommsg() {
     if $use_g4f; then
         if [[ -n "$g4f_provider" && -z "$g4f_model" ]] || [[ -z "$g4f_provider" && -n "$g4f_model" ]]; then
             echo "Error: When using --g4f with manual selection, both -pr and -ml must be provided"
+            _log "ERROR" "g4f validation failed: Both provider and model must be specified"
             return 1
         fi
     fi
@@ -154,14 +175,17 @@ gitcommsg() {
         # Check if in a Git repository
         if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             echo "Error: Not a Git repository. Run this command from a Git project root."
+            _log "ERROR" "Not in a Git repository"
             return 1
         fi
 
         # Check staged changes only when not using a diff file
         if ! git diff --cached --quiet; then
             : # Changes exist, continue
+            _log "INFO" "Found staged changes for commit"
         else
             echo "Error: No staged changes found. Stage changes with 'git add' first."
+            _log "ERROR" "No staged changes found"
             return 1
         fi
     fi
@@ -169,11 +193,13 @@ gitcommsg() {
     # Validate context length if provided
     if [[ -n "$context" && ${#context} -gt 100 ]]; then
         echo "Error: Context message too long (max 100 characters)"
+        _log "ERROR" "Context message too long: ${#context} characters (max 100)"
         return 1
     fi
 
     local context_prompt=""
     if [[ -n "$context" ]]; then
+        _log "INFO" "Using context: $context"
         context_prompt=$(cat <<EOF
 ABSOLUTE PRIORITY INSTRUCTION: $context
 
@@ -201,6 +227,7 @@ Example with context feat: login flow:
 
 EOF
 )
+        _log "DEBUG" "Generated context_prompt with $(echo "$context_prompt" | wc -l) lines"
     fi
 
     local template="$context_prompt   Analyze ONLY the exact changes in this git diff and create a precise, factual commit message.
@@ -274,33 +301,45 @@ Git diff or partial analyses to process:"
         local ai_cmd="tptd"
         local ai_args=()
 
+        _log "INFO" "Starting process_diff function with recursion_depth=$recursion_depth"
+        _log "DEBUG" "Template size: $(echo "$template" | wc -l) lines"
+        _log "DEBUG" "Diff input size: $(echo "$diff_input" | wc -l) lines"
+
         # Determine which AI command to use
         if $use_g4f; then
             ai_cmd="tptg"
+            _log "INFO" "Using g4f provider via tptg"
             # If provider and model are specified, use them
             if [[ -n "$g4f_provider" && -n "$g4f_model" ]]; then
                 saved_provider="$g4f_provider"
                 saved_model="$g4f_model"
                 ai_args=("-pr" "$g4f_provider" "-ml" "$g4f_model")
+                _log "INFO" "Using specified g4f provider '$g4f_provider' and model '$g4f_model'"
             elif [[ -n "$saved_provider" && -n "$saved_model" ]]; then
                 # Reuse previously selected provider and model
                 ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
+                _log "INFO" "Reusing previously selected provider '$saved_provider' and model '$saved_model'"
             elif [[ -n "$G4F_SELECTED_PROVIDER" && -n "$G4F_SELECTED_MODEL" ]]; then
                 # Use previously exported variables from tptg
                 saved_provider="$G4F_SELECTED_PROVIDER"
                 saved_model="$G4F_SELECTED_MODEL"
                 ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
                 echo "Using previously selected provider '$saved_provider' and model '$saved_model'"
+                _log "INFO" "Using previously exported provider '$saved_provider' and model '$saved_model'"
             fi
             # Otherwise, interactive selection will be used
         elif $use_nazapi; then
             ai_cmd="tptn"
             ai_args=("-ml" "$nazapi_model")
+            _log "INFO" "Using nazOllama API with model '$nazapi_model'"
+        else
+            _log "INFO" "Using default command $ai_cmd with model $model"
         fi
         
         # For interactive g4f, do a quick one-time selection via tptg
         if [[ "$ai_cmd" == "tptg" && ${#ai_args[@]} -eq 0 ]]; then
             echo "Running interactive provider/model selection via tptg..."
+            _log "INFO" "Running interactive provider/model selection via tptg"
             
             # Create a temporary prompt to select provider/model
             local temp_prompt="This is a temporary prompt to select your provider and model."
@@ -335,7 +374,9 @@ Git diff or partial analyses to process:"
                 ai_args=("-pr" "$saved_provider" "-ml" "$saved_model")
                 echo "Selected provider: $saved_provider"
                 echo "Selected model: $saved_model"
+                _log "INFO" "Interactively selected provider '$saved_provider' and model '$saved_model'"
             else
+                _log "ERROR" "Provider and model selection failed"
                 echo "Error: Provider and model selection failed"
                 return 1
             fi
@@ -343,9 +384,11 @@ Git diff or partial analyses to process:"
         
         if $chunk_mode; then
             echo "Processing diff in chunks (${chunk_size} lines)..."
+            _log "INFO" "Processing diff in chunks (${chunk_size} lines)"
             
             # Create temp directory
             local temp_dir=$(mktemp -d)
+            _log "DEBUG" "Created temporary directory: $temp_dir"
             trap "rm -rf $temp_dir" EXIT
             
             # Split diff into chunks
@@ -353,12 +396,14 @@ Git diff or partial analyses to process:"
             
             local chunk_count=$(ls "$temp_dir" | wc -l)
             echo "Found $chunk_count chunks to process"
+            _log "INFO" "Found $chunk_count chunks to process"
             
             # Process each chunk
             local i=1
             for chunk in "$temp_dir"/chunk_*; do
                 echo "\n=== CHUNK $i/$chunk_count ==="
                 echo "Raw diff lines: $(wc -l < "$chunk")"
+                _log "INFO" "Processing chunk $i/$chunk_count with $(wc -l < "$chunk") lines"
                 
                 # Create the chunk template without printing it
                 local chunk_template=""
@@ -383,6 +428,7 @@ Section to summarize:"
                     
                     # For re-chunking, show different information
                     echo "Re-chunking summary at level $recursion_depth"
+                    _log "INFO" "Using re-chunking template at depth $recursion_depth"
                 else
                     # For initial chunking, we're processing raw git diff
                     chunk_template="Analyze this PARTIAL git diff and create a detailed technical summary with this EXACT format:
@@ -402,6 +448,7 @@ Use format 'filename:function_name()' or 'filename:line_number' when referencing
 Be precise and factual - only describe code that actually changed.
 
 Diff chunk:"
+                    _log "INFO" "Using initial chunking template"
                 fi
                 
                 echo "\n🚧 Partial analysis:"
@@ -413,14 +460,17 @@ Diff chunk:"
                 local prompt_file=$(mktemp)
                 printf "%s\n\n" "$chunk_template" > "$prompt_file"
                 cat "$chunk" >> "$prompt_file"
+                _log "DEBUG" "Created prompt file: $prompt_file with $(wc -l < "$prompt_file") lines"
                 
                 while true; do
                     local tmpfile=$(mktemp)
                     local cmd_status=0
+                    _log "DEBUG" "Created output file: $tmpfile"
 
                     # Execute the appropriate command with or without tor
                     if $use_tor && ! $use_g4f; then
                         # G4F doesn't support tor directly
+                        _log "INFO" "Executing with Tor: attempt $(($retry_count + 1))/$max_retries"
                         if [[ ${#ai_args[@]} -gt 0 ]]; then
                             $ai_cmd --tor "${ai_args[@]}" < "$prompt_file" | tee "$tmpfile"
                         else
@@ -428,6 +478,7 @@ Diff chunk:"
                         fi
                     else
                         # Normal execution with saved args
+                        _log "INFO" "Executing without Tor: attempt $(($retry_count + 1))/$max_retries"
                         if [[ ${#ai_args[@]} -gt 0 ]]; then
                             $ai_cmd "${ai_args[@]}" < "$prompt_file" | tee "$tmpfile"
                         else
@@ -437,15 +488,18 @@ Diff chunk:"
                     fi
                     
                     if [ $cmd_status -eq 0 ]; then
+                        _log "INFO" "Command executed successfully"
                         cat "$tmpfile" >> "$temp_dir/partials.txt"
                         # Clean up temporary files
                         rm -f "$prompt_file" "$tmpfile"
                         break
                     else
                         ((retry_count++))
+                        _log "WARNING" "Command failed with status $cmd_status (attempt $retry_count/$max_retries)"
                         if [ $retry_count -gt $max_retries ]; then
                             # Clean up temporary files
                             rm -f "$prompt_file" "$tmpfile"
+                            _log "ERROR" "Failed after $max_retries retries. Aborting."
                             echo "❌ Failed after $max_retries retries. Aborting."
                             return 1
                         fi
@@ -463,6 +517,7 @@ Diff chunk:"
                         
                         # Exponential backoff
                         wait_seconds=$((wait_seconds * 2))
+                        _log "INFO" "Retrying with backoff: next wait time = $wait_seconds seconds"
                     fi
                     # Clean up temporary file after each attempt
                     rm -f "$tmpfile"
@@ -473,6 +528,7 @@ Diff chunk:"
                 # Rate limit protection
                 if ((i < chunk_count)); then
                     echo -n "⏳ Pausing 10s "
+                    _log "INFO" "Pausing 10s between chunks for rate limit protection"
                     local spin='⣷⣯⣟⡿⢿⣻⣽⣾'
                     local start_time=$SECONDS
                     while (( (SECONDS - start_time) < 10 )); do
@@ -486,10 +542,12 @@ Diff chunk:"
             done
             
             echo "\n📦 Collected partial analyses:"
+            _log "INFO" "Collected $(grep -c "^" "$temp_dir/partials.txt") lines of partial analyses"
             cat "$temp_dir/partials.txt"
             
             # Combine partial results
             echo "\n🔨 Combining partial analyses..."
+            _log "INFO" "Starting combination of partial analyses"
             
             # Read the partial analyses
             local partial_analyses=$(cat "$temp_dir/partials.txt")
@@ -520,7 +578,6 @@ FILENAME & FUNCTION HANDLING RULES:
 EXAMPLES OF GOOD BULLETS:
 - [refactor] Update model function signature in models.py:process_input()
 - [fix] Correct parameter validation in api/endpoints.js:validateUser()
-- [fix] Correct parameter validation in auth.js:validateUser()
 - [docs] Add parameter descriptions for login.py:authenticate()
 - [feat] Add new provider implementation (Provider/Chatai.py)
 
@@ -530,6 +587,7 @@ DO NOT mention insufficient information or ask for the original diff.
 Final commit message:"
             
             diff_input="$combine_template"
+            _log "DEBUG" "Created combine template with $(echo "$combine_template" | wc -l) lines"
             
             # Recursive chunking for large messages
             if $recursive_chunk && (( recursion_depth < max_recursion )); then
@@ -538,6 +596,7 @@ Final commit message:"
                 
                 while (( msg_length > msg_threshold )) && (( recursion_depth < max_recursion )); do
                     echo "\n⚠️  Combined message too long (${msg_length} lines), re-chunking..."
+                    _log "INFO" "Combined message too long (${msg_length} lines), re-chunking"
                     ((recursion_depth++))
                     
                     # Create a special template for re-chunking that explicitly states we're working with partial analyses
@@ -566,69 +625,86 @@ DO NOT include any explanation or comments outside the commit message format.
 Partial analyses to synthesize:"
 
                     echo "\n===== RECHUNKING LEVEL $recursion_depth ====="
+                    _log "INFO" "Starting re-chunking at depth $recursion_depth"
                     
                     # For debugging, show a preview of what's being processed
                     echo "\n📄 Processing the following combined analyses:"
                     echo "$diff_input" | head -n 20
                     echo "... (total ${msg_length} lines)"
+                    _log "DEBUG" "Processing combined analyses with $msg_length lines"
                     
                     # Process the long message as new input with the special template
                     echo "\n🔄 Generating new synthesis..."
+                    _log "INFO" "Generating new synthesis at depth $recursion_depth"
                     local result=$(process_diff "$diff_input" "$rechunk_template")
                     
                     # Show the result
                     echo "\n📋 Rechunking result:"
                     echo "$result"
+                    _log "DEBUG" "Rechunking result: $(echo "$result" | wc -l) lines"
                     
                     # Update diff_input for next iteration
                     diff_input="$result"
                     msg_length=$(echo "$diff_input" | wc -l)
                     
                     echo "\n🔄 Recursion depth $recursion_depth - New length: ${msg_length} lines"
+                    _log "INFO" "Recursion depth $recursion_depth - New length: ${msg_length} lines"
                 done
             fi
         fi
 
         echo "\n🎉 Final commit message generation..."
+        _log "INFO" "Starting final commit message generation"
         # Final command execution with tor support or g4f
         # Create a temporary file for the full prompt
         local final_prompt_file=$(mktemp)
         echo "$template" > "$final_prompt_file"
         echo "$diff_input" >> "$final_prompt_file"
+        _log "DEBUG" "Created final prompt file with $(wc -l < "$final_prompt_file") lines"
         
         local result=""
         
         if $use_g4f; then
             if (( recursion_depth > 0 )); then
+                _log "INFO" "Executing final g4f command with recursion"
                 result=$($ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$final_prompt_file")
             else
+                _log "INFO" "Executing final g4f command"
                 $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$final_prompt_file"
             fi
         elif $use_tor; then
             if $use_nazapi; then
                 if (( recursion_depth > 0 )); then
+                    _log "INFO" "Executing final nazapi command with tor and recursion"
                     result=$($ai_cmd --tor "${ai_args[@]}" < "$final_prompt_file")
                 else
+                    _log "INFO" "Executing final nazapi command with tor"
                     $ai_cmd --tor "${ai_args[@]}" < "$final_prompt_file"
                 fi
             else
                 if (( recursion_depth > 0 )); then
+                    _log "INFO" "Executing final command with tor and recursion"
                     result=$($ai_cmd --tor "$model" < "$final_prompt_file")
                 else
+                    _log "INFO" "Executing final command with tor"
                     $ai_cmd --tor "$model" < "$final_prompt_file"
                 fi
             fi
         else
             if $use_nazapi; then
                 if (( recursion_depth > 0 )); then
+                    _log "INFO" "Executing final nazapi command with recursion"
                     result=$($ai_cmd "${ai_args[@]}" < "$final_prompt_file")
                 else
+                    _log "INFO" "Executing final nazapi command"
                     $ai_cmd "${ai_args[@]}" < "$final_prompt_file"
                 fi
             else
                 if (( recursion_depth > 0 )); then
+                    _log "INFO" "Executing final command with recursion"
                     result=$($ai_cmd "$model" < "$final_prompt_file")
                 else
+                    _log "INFO" "Executing final command"
                     $ai_cmd "$model" < "$final_prompt_file"
                 fi
             fi
@@ -636,9 +712,11 @@ Partial analyses to synthesize:"
         
         # Clean up the final prompt file
         rm -f "$final_prompt_file"
+        _log "DEBUG" "Removed final prompt file"
         
         # If in recursion mode, return the result
         if (( recursion_depth > 0 )); then
+            _log "INFO" "Returning result from recursion depth $recursion_depth"
             echo "$result"
         fi
     }
@@ -648,18 +726,24 @@ Partial analyses to synthesize:"
     if [[ -n "$diff_file" ]]; then
         diff_content=$(cat "$diff_file")
         echo "Using diff from file: $diff_file"
+        _log "INFO" "Using diff from file: $diff_file ($(echo "$diff_content" | wc -l) lines)"
     else
         diff_content=$(git diff --staged)
+        _log "INFO" "Using staged changes ($(echo "$diff_content" | wc -l) lines)"
     fi
+    
+    _log "INFO" "Starting commit message generation with options: model=$model, chunk_mode=$chunk_mode, recursive_chunk=$recursive_chunk, use_tor=$use_tor, use_nazapi=$use_nazapi, use_g4f=$use_g4f"
     
     if ! process_diff "$diff_content" "$template"; then
         # Clean up environment variables even on failure
         unset G4F_SELECTED_PROVIDER
         unset G4F_SELECTED_MODEL
+        _log "ERROR" "process_diff failed"
         return 1
     fi
     
     # Clean up environment variables when done
     unset G4F_SELECTED_PROVIDER
     unset G4F_SELECTED_MODEL
+    _log "INFO" "Commit message generation completed successfully"
 }
