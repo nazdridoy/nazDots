@@ -55,7 +55,9 @@ rewrite() {
     local input_text
     input_text=$(cat)
 
-    local template="Rewrite the following text to be more natural and grammatically correct.
+    local template
+    template=$(cat << 'TEMPLATE'
+Rewrite the following text to be more natural and grammatically correct.
 Important rules:
 1. Preserve the original tone (angry, happy, sorry, formal, etc)
 2. Fix grammar and spelling errors
@@ -73,7 +75,7 @@ Important rules:
    g. Keep lists parallel in structure
    h. Preserve any markdown/code formatting
 8. Handle special cases:
-   - Preserve code samples between \`\`\` unchanged
+   - Preserve code samples between ``` unchanged
    - Maintain quoted text integrity
    - Keep placeholders like {variable} intact
    - Preserve URLs and email addresses
@@ -83,13 +85,18 @@ Important rules:
    - Keep related ideas in the same paragraph
 
 Examples of GOOD rewrites:
-Original: \"The system, it should be noted, when in operation, may experience lags.\"
-Rewritten: \"The system might experience delays during operation.\"
+Original: "The system, it should be noted, when in operation, may experience lags."
+Rewritten: "The system might experience delays during operation."
 
-Original: \"We was planning to done the task yesterday but it weren't possible.\"
-Rewritten: \"We had planned to complete the task yesterday, but it wasn't possible.\"
+Original: "We was planning to done the task yesterday but it weren't possible."
+Rewritten: "We had planned to complete the task yesterday, but it wasn't possible."
 
-Text to rewrite: $input_text"
+Text to rewrite: PLACEHOLDER_FOR_INPUT_TEXT
+TEMPLATE
+)
+
+    # Replace placeholder with actual input_text
+    template=${template/PLACEHOLDER_FOR_INPUT_TEXT/$input_text}
 
     # Process with tptd
     if $use_tor; then
