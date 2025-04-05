@@ -351,7 +351,30 @@ Git diff or partial analyses to process:"
             for chunk in "$temp_dir"/chunk_*; do
                 echo "\n=== CHUNK $i/$chunk_count ==="
                 echo "Raw diff lines: $(wc -l < "$chunk")"
-                local chunk_template="Analyze this PARTIAL git diff and create a detailed technical summary with this EXACT format:
+                
+                # Create the chunk template without printing it
+                local chunk_template=""
+                
+                # Check if we're in a re-chunking operation
+                if (( recursion_depth > 0 )); then
+                    # For re-chunking, we're processing partial analyses, not git diff
+                    chunk_template="IMPORTANT: You are analyzing SUMMARIES of git changes, not raw git diff.
+
+You are in a re-chunking process where the input is already summarized changes.
+Create a TERSE summary of these summaries focusing ONLY ON TECHNICAL CHANGES:
+
+[CHANGES]:
+- Technical change 1 (specific file and function)
+- Technical change 2 (specific file and function)
+- Additional relevant changes
+
+DO NOT ask for raw git diff. These summaries are all you need to work with.
+Keep your response FACTUAL and SPECIFIC to what's in the summaries.
+
+Section to summarize:"
+                else
+                    # For initial chunking, we're processing raw git diff
+                    chunk_template="Analyze this PARTIAL git diff and create a detailed technical summary with this EXACT format:
 
 [FILES]: Comma-separated list of affected files with full paths
 [CHANGES]: 
@@ -364,13 +387,18 @@ IMPORTANT: Be extremely specific and factual. Only describe code that actually c
 Include exact function/method names, variable names, and other technical identifiers.
 Focus on HOW the code changed, not speculation about WHY.
 
-Diff chunk:
-"
-
+Diff chunk:"
+                fi
+                
                 echo "\n🚧 Partial analysis:"
                 local max_retries=3
                 local retry_count=0
                 local wait_seconds=10
+                
+                # Create a temporary file for the full prompt to avoid any stdout issues
+                local prompt_file=$(mktemp)
+                printf "%s\n\n" "$chunk_template" > "$prompt_file"
+                cat "$chunk" >> "$prompt_file"
                 
                 while true; do
                     local tmpfile=$(mktemp)
@@ -380,27 +408,30 @@ Diff chunk:
                     if $use_tor && ! $use_g4f; then
                         # G4F doesn't support tor directly
                         if [[ ${#ai_args[@]} -gt 0 ]]; then
-                            { echo "$chunk_template"; cat "$chunk"; } | $ai_cmd --tor "${ai_args[@]}" | tee "$tmpfile"
+                            $ai_cmd --tor "${ai_args[@]}" < "$prompt_file" | tee "$tmpfile"
                         else
-                            { echo "$chunk_template"; cat "$chunk"; } | $ai_cmd --tor "$model" | tee "$tmpfile"
+                            $ai_cmd --tor "$model" < "$prompt_file" | tee "$tmpfile"
                         fi
                     else
                         # Normal execution with saved args
                         if [[ ${#ai_args[@]} -gt 0 ]]; then
-                            { echo "$chunk_template"; cat "$chunk"; } | $ai_cmd "${ai_args[@]}" | tee "$tmpfile"
+                            $ai_cmd "${ai_args[@]}" < "$prompt_file" | tee "$tmpfile"
                         else
-                            { echo "$chunk_template"; cat "$chunk"; } | $ai_cmd "$model" | tee "$tmpfile"
+                            $ai_cmd "$model" < "$prompt_file" | tee "$tmpfile"
                         fi
                         cmd_status=${pipestatus[1]}
                     fi
                     
                     if [ $cmd_status -eq 0 ]; then
                         cat "$tmpfile" >> "$temp_dir/partials.txt"
+                        # Clean up temporary files
+                        rm -f "$prompt_file" "$tmpfile"
                         break
                     else
                         ((retry_count++))
                         if [ $retry_count -gt $max_retries ]; then
-                            rm -f "$tmpfile"
+                            # Clean up temporary files
+                            rm -f "$prompt_file" "$tmpfile"
                             echo "❌ Failed after $max_retries retries. Aborting."
                             return 1
                         fi
@@ -419,6 +450,7 @@ Diff chunk:
                         # Exponential backoff
                         wait_seconds=$((wait_seconds * 2))
                     fi
+                    # Clean up temporary file after each attempt
                     rm -f "$tmpfile"
                 done
                 
@@ -449,21 +481,28 @@ Diff chunk:
             local partial_analyses=$(cat "$temp_dir/partials.txt")
             
             # Create combine template as a regular string
-            local combine_template="IMPORTANT: The following text contains YOUR OWN PREVIOUS ANALYSES of git diff chunks. 
-These analyses already summarize the actual git diff content that you analyzed earlier.
-DO NOT ask for the original git diff - it is not needed.
+            local combine_template="===CRITICAL INSTRUCTION===
+You are working with ANALYZED SUMMARIES of git changes, NOT raw git diff.
+The raw git diff has ALREADY been processed into these summaries.
+DO NOT ask for or expect to see the original git diff.
 
-Your task is to synthesize these partial analyses into a complete commit message:
+TASK: Synthesize these partial analyses into a complete conventional commit message:
+
 $partial_analyses
 
-Use ONLY the information in these partial analyses to create a conventional commit message:
+Create a CONVENTIONAL COMMIT MESSAGE with:
 1. First line: \"type: brief summary\" (50 chars max)
 2. One blank line
 3. Bullet points with specific changes, each with appropriate [type] tag
-4. Reference files, functions, and components that were changed
+4. ALWAYS reference specific files and functions in EACH bullet point
 
-STRICTLY follow the commit message format specified in your instructions.
-DO NOT include any explanation, questions, or reference to missing diff content.
+EXAMPLES OF GOOD BULLETS:
+- [refactor] Update model function signature in src/models.py:process_input()
+- [fix] Correct parameter validation in api/endpoints.js:validateUser()
+- [docs] Add parameter descriptions for auth/login.py:authenticate()
+
+STRICTLY follow this format with NO EXPLANATION or additional commentary.
+DO NOT mention insufficient information or ask for the original diff.
 
 Final commit message:"
             
@@ -478,8 +517,26 @@ Final commit message:"
                     echo "\n⚠️  Combined message too long (${msg_length} lines), re-chunking..."
                     ((recursion_depth++))
                     
-                    # Process the long message as new input
-                    diff_input=$(process_diff "$diff_input" "$template")
+                    # Create a special template for re-chunking that explicitly states we're working with partial analyses
+                    local rechunk_template="IMPORTANT CONTEXT: You are analyzing SUMMARIES of git changes, not raw git diff.
+                    
+The following contains partial analyses of git changes that have already been processed.
+Your task is to synthesize these analyses into a CONVENTIONAL COMMIT MESSAGE.
+
+FORMAT:
+type: <concise summary> (max 50 chars)
+
+- [type] <specific change 1> (filename:function/method/line)
+- [type] <specific change 2> (filename:function/method/line)
+- [type] <additional changes...>
+
+STRICTLY follow this format. Do NOT ask for raw git diff - work with the summaries provided.
+DO NOT include any explanation or comments outside the commit message format.
+
+Partial analyses to synthesize:"
+                    
+                    # Process the long message as new input with the special template
+                    diff_input=$(process_diff "$diff_input" "$rechunk_template")
                     msg_length=$(echo "$diff_input" | wc -l)
                     
                     echo "\n🔄 Recursion depth $recursion_depth - New length: ${msg_length} lines"
@@ -489,42 +546,29 @@ Final commit message:"
 
         echo "\n🎉 Final commit message generation..."
         # Final command execution with tor support or g4f
+        # Create a temporary file for the full prompt
+        local final_prompt_file=$(mktemp)
+        echo "$template" > "$final_prompt_file"
+        echo "$diff_input" >> "$final_prompt_file"
+        
         if $use_g4f; then
-            # Create a temporary file with the template and diff content
-            local temp_prompt_file=$(mktemp)
-            echo "$template" > "$temp_prompt_file"
-            echo "$diff_input" >> "$temp_prompt_file"
-            $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$temp_prompt_file"
-            rm -f "$temp_prompt_file"
+            $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$final_prompt_file"
         elif $use_tor; then
             if $use_nazapi; then
-                local temp_prompt_file=$(mktemp)
-                echo "$template" > "$temp_prompt_file"
-                echo "$diff_input" >> "$temp_prompt_file"
-                $ai_cmd --tor "${ai_args[@]}" < "$temp_prompt_file"
-                rm -f "$temp_prompt_file"
+                $ai_cmd --tor "${ai_args[@]}" < "$final_prompt_file"
             else
-                local temp_prompt_file=$(mktemp)
-                echo "$template" > "$temp_prompt_file"
-                echo "$diff_input" >> "$temp_prompt_file"
-                $ai_cmd --tor "$model" < "$temp_prompt_file"
-                rm -f "$temp_prompt_file"
+                $ai_cmd --tor "$model" < "$final_prompt_file"
             fi
         else
             if $use_nazapi; then
-                local temp_prompt_file=$(mktemp)
-                echo "$template" > "$temp_prompt_file"
-                echo "$diff_input" >> "$temp_prompt_file"
-                $ai_cmd "${ai_args[@]}" < "$temp_prompt_file"
-                rm -f "$temp_prompt_file"
+                $ai_cmd "${ai_args[@]}" < "$final_prompt_file"
             else
-                local temp_prompt_file=$(mktemp)
-                echo "$template" > "$temp_prompt_file"
-                echo "$diff_input" >> "$temp_prompt_file"
-                $ai_cmd "$model" < "$temp_prompt_file"
-                rm -f "$temp_prompt_file"
+                $ai_cmd "$model" < "$final_prompt_file"
             fi
         fi
+        
+        # Clean up the final prompt file
+        rm -f "$final_prompt_file"
     }
 
     # Capture diff and process
