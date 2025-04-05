@@ -372,6 +372,9 @@ DO NOT ask for raw git diff. These summaries are all you need to work with.
 Keep your response FACTUAL and SPECIFIC to what's in the summaries.
 
 Section to summarize:"
+                    
+                    # For re-chunking, show different information
+                    echo "Re-chunking summary at level $recursion_depth"
                 else
                     # For initial chunking, we're processing raw git diff
                     chunk_template="Analyze this PARTIAL git diff and create a detailed technical summary with this EXACT format:
@@ -534,9 +537,24 @@ STRICTLY follow this format. Do NOT ask for raw git diff - work with the summari
 DO NOT include any explanation or comments outside the commit message format.
 
 Partial analyses to synthesize:"
+
+                    echo "\n===== RECHUNKING LEVEL $recursion_depth ====="
+                    
+                    # For debugging, show a preview of what's being processed
+                    echo "\n📄 Processing the following combined analyses:"
+                    echo "$diff_input" | head -n 20
+                    echo "... (total ${msg_length} lines)"
                     
                     # Process the long message as new input with the special template
-                    diff_input=$(process_diff "$diff_input" "$rechunk_template")
+                    echo "\n🔄 Generating new synthesis..."
+                    local result=$(process_diff "$diff_input" "$rechunk_template")
+                    
+                    # Show the result
+                    echo "\n📋 Rechunking result:"
+                    echo "$result"
+                    
+                    # Update diff_input for next iteration
+                    diff_input="$result"
                     msg_length=$(echo "$diff_input" | wc -l)
                     
                     echo "\n🔄 Recursion depth $recursion_depth - New length: ${msg_length} lines"
@@ -551,24 +569,51 @@ Partial analyses to synthesize:"
         echo "$template" > "$final_prompt_file"
         echo "$diff_input" >> "$final_prompt_file"
         
+        local result=""
+        
         if $use_g4f; then
-            $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$final_prompt_file"
+            if (( recursion_depth > 0 )); then
+                result=$($ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$final_prompt_file")
+            else
+                $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$final_prompt_file"
+            fi
         elif $use_tor; then
             if $use_nazapi; then
-                $ai_cmd --tor "${ai_args[@]}" < "$final_prompt_file"
+                if (( recursion_depth > 0 )); then
+                    result=$($ai_cmd --tor "${ai_args[@]}" < "$final_prompt_file")
+                else
+                    $ai_cmd --tor "${ai_args[@]}" < "$final_prompt_file"
+                fi
             else
-                $ai_cmd --tor "$model" < "$final_prompt_file"
+                if (( recursion_depth > 0 )); then
+                    result=$($ai_cmd --tor "$model" < "$final_prompt_file")
+                else
+                    $ai_cmd --tor "$model" < "$final_prompt_file"
+                fi
             fi
         else
             if $use_nazapi; then
-                $ai_cmd "${ai_args[@]}" < "$final_prompt_file"
+                if (( recursion_depth > 0 )); then
+                    result=$($ai_cmd "${ai_args[@]}" < "$final_prompt_file")
+                else
+                    $ai_cmd "${ai_args[@]}" < "$final_prompt_file"
+                fi
             else
-                $ai_cmd "$model" < "$final_prompt_file"
+                if (( recursion_depth > 0 )); then
+                    result=$($ai_cmd "$model" < "$final_prompt_file")
+                else
+                    $ai_cmd "$model" < "$final_prompt_file"
+                fi
             fi
         fi
         
         # Clean up the final prompt file
         rm -f "$final_prompt_file"
+        
+        # If in recursion mode, return the result
+        if (( recursion_depth > 0 )); then
+            echo "$result"
+        fi
     }
 
     # Capture diff and process
