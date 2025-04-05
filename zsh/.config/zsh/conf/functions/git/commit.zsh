@@ -214,149 +214,78 @@ gitcommsg() {
     if [[ -n "$context" ]]; then
         _log "INFO" "Using context: $context"
         context_prompt=$(cat <<EOF
-⚠️ ABSOLUTE DIRECTIVE - FOLLOW EXACTLY - NO EXCEPTIONS ⚠️
+⚠️ CRITICAL INSTRUCTION - HIGHEST PRIORITY - NO EXCEPTIONS ⚠️
 
-The user provided this with the -m flag: "$context"
+Context provided: "$context"
 
-█████████████████████████████████████████████████████████████████
-█ CRITICAL FILE TYPE DIRECTIVE - OVERRIDES ALL OTHER INSTRUCTIONS █
-█████████████████████████████████████████████████████████████████
+█ MANDATORY FILE TYPE FILTERING █
 
-IF "$context" MENTIONS ANY FILE TYPE TERM:
-* YOU MUST ONLY LIST CHANGES TO THAT EXACT FILE TYPE
-* YOU MUST DELETE ALL OTHER FILE TYPES FROM YOUR RESPONSE
-* NO EXCEPTIONS WHATSOEVER
+IF "$context" MENTIONS A FILE TYPE OR TECHNOLOGY:
+* YOU MUST INCLUDE ONLY changes to that specific file type
+* YOU MUST EXCLUDE ALL other files completely from your output
+* THIS IS A STRICT FILTER - NO EXCEPTIONS ALLOWED
 
-EXACT FILE TYPE MAPPING:
-➤ Web terms:
-   → HTML: "html", "markup", "template", "index.html", "webpage"
-   → CSS: "css", "style", "stylesheet", "styling"
-   → JavaScript: "js", "javascript"
+FILE TYPE MAPPING:
+- Web: HTML (.html), CSS (.css), JavaScript (.js)
+- Scripts: Shell (.sh), Python (.py), Ruby (.rb), PowerShell (.ps1), Batch (.bat), JavaScript (.js)
+- Languages: C/C++ (.c/.cpp), Python (.py), Go (.go), Rust (.rs), Java (.java)
 
-➤ Script/Code terms:
-   → "script" - Could refer to many types (.js, .sh, .py, .rb, .ps1, .bat) depending on context
-   → "bash script", "shell script" - .sh, .bash files
-   → "batch script" - .bat, .cmd files
-   → "python script" - .py files
-   → "ruby script" - .rb files
-   → "powershell script" - .ps1 files
+SPECIFIC TERM HANDLING:
+- "html" → ONLY include .html files, EXCLUDE ALL others
+- "css" → ONLY include .css files, EXCLUDE ALL others
+- "script" → ONLY include script files (.js/.sh/.py/.rb/.ps1/.bat), EXCLUDE ALL others
+- "javascript" → ONLY include .js files, EXCLUDE ALL others
+- "python" → ONLY include .py files, EXCLUDE ALL others
+- "auth handler" → ONLY include files related to authentication handlers
+- "ui" → ONLY include files related to user interfaces
+- "api" → ONLY include files related to APIs
+- "config" → ONLY include files related to configurations
+- "middleware" → ONLY include files related to middleware
+- "handler" → ONLY include files related to handlers
 
-➤ Programming language terms:
-   → C/C++: "c", "cpp", "c++", ".c", ".cpp", ".h", ".hpp"
-   → Python: "py", "python", ".py"
-   → Go: "go", "golang", ".go"
-   → Rust: "rust", "rs", ".rs"
-   → Java: "java", ".java"
-   → Ruby: "ruby", ".rb"
+FORBIDDEN CONTENT EXAMPLES:
+- For "updated html" → Your response MUST NOT mention: script.js, styles.css
+- For "updated script" → Your response MUST NOT mention: index.html, styles.css
+- For "fixed css" → Your response MUST NOT mention: index.html, script.js
+- For "refactored auth handler" → Your response MUST NOT mention: api.py, api_handler.py, api_handler.js, etc.
 
-IF "$context" contains a specific technology term:
-   * First determine what technology/language/file type is being referenced
-   * Then ONLY include files of that specific type in your response
-   * For context like "updated python code" - focus only on Python files
-   * For context like "fixed C++ error" - focus only on C++ files
+FILES OUTSIDE YOUR FILTER MUST BE COMPLETELY REMOVED FROM RESPONSE.
 
-IMPORTANT: The term "script" by itself should be interpreted based on the repository context
-   * In a web project - likely refers to JavaScript
-   * In a Linux/Unix context - likely refers to shell scripts
-   * In a Windows context - likely refers to PowerShell/batch scripts
-   * In a data science context - likely refers to Python scripts
+█ COMMIT TYPE DIRECTIVE █
 
-CONCRETE EXAMPLES:
-➤ For "updated html" - ONLY INCLUDE .html files - EXCLUDE ALL .js/.css
-➤ For "updated script" - ONLY INCLUDE .js files - EXCLUDE ALL .html/.css
-➤ For "updated javascript" - ONLY INCLUDE .js files - EXCLUDE ALL .html/.css
+IF "$context" INDICATES A COMMIT TYPE:
+- "type:X" → Use "X:" as prefix EXACTLY (e.g., "type:feat" → "feat:")
+- Single word matching commit type → Use as is (e.g., "fix" → "fix:")
+- Past tense verb → Convert to commit type (e.g., "updated" → "update:")
+- Phrase with type meaning → Extract type (e.g., "bug in login" → "fix:")
 
-FORBIDDEN WORDS IN RESPONSES:
-➤ For "updated html" - Your response MUST NEVER contain: "script.js", "styles.css"
-➤ For "updated script" - Your response MUST NEVER contain: "index.html", "styles.css"
-➤ For "updated javascript" - Your response MUST NEVER contain: "index.html", "styles.css"
-➤ For "updated css" - Your response MUST NEVER contain: "index.html", "script.js"
+█ COMMAND MODE █
 
-THIS IS A PRE-PROCESSING DIRECTIVE: You must FIRST filter based on file type BEFORE applying any other instructions. ONLY AFTER excluding non-matching files should you apply other directives.
+IF "$context" IS A DIRECT COMMAND:
+- DO EXACTLY WHAT IT SAYS, ignoring diff if instructed
+- If told to "ignore X", COMPLETELY EXCLUDE X
+- If told to "just say X", OUTPUT ONLY X
 
-PROOF OF UNDERSTANDING:
-For "updated html" your response MUST NEVER contain:
-✓ script.js
-✓ styles.css
-✓ Any non-HTML file
+█ FOCUS DIRECTIVE █
 
-THIS DIRECTIVE APPLIES REGARDLESS OF:
-- Importance of other changes
-- Completeness concerns
-- Other instructions
-- Safety guidelines
-- Common sense
+IF "$context" CONTAINS "focus on", "only mention", etc.:
+- ONLY include changes matching the specified focus
+- COMPLETELY EXCLUDE everything else
+- For "focus only on css" → Include ONLY CSS-related changes
 
-THIS DIRECTIVE IS THE HIGHEST PRIORITY RULE IN THIS ENTIRE PROMPT.
+█ EXCLUSION DIRECTIVE █
 
-█████████████████████████████████████████████████████████████████
-
-This is either:
-1. A COMMIT TYPE SPECIFICATION (e.g., "type:init", "feat", "refactor")
-2. A DIRECT COMMAND to output specific text (e.g., "just say hello")
-3. AN INSTRUCTION on how to analyze the diff (e.g., "focus on logical flow")
-4. A CONTEXT to emphasize in the commit (e.g., "auth refactor")
-
-COMMIT TYPE MODE: If "$context" matches any of these patterns:
-- Contains "type:" prefix (e.g., "type:init", "type:feat") → Use specified type EXACTLY as written:
-  * "type:init" → MUST use "init:" as prefix (not "feat:" or anything else)
-  * "type:docs" → MUST use "docs:" as prefix (not "feat:" or anything else)
-- Is a single word matching commit types (init, feat, fix, docs, style, etc.) → Use as is
-- Starts with a verb in past tense (e.g., "updated", "fixed", "added", "removed"):
-  → Convert to commit type AND identify focus area:
-  * "updated html" → Use "update:" AND focus only on HTML files
-  * "fixed login" → Use "fix:" AND focus only on login functionality
-  * "added endpoint" → Use "add:" AND focus only on endpoint changes
-- Is a short phrase with obvious type meaning (e.g., "bug in login" → "fix: Login bug")
-
-THEN:
-- USE THE EXACT DERIVED TYPE as the commit prefix without exceptions
-- APPLY EXCLUSIVE FOCUS on the object/area mentioned after the verb
-- EXCLUDE changes not directly related to that specific area
-- For "updated html" → ONLY include HTML changes, not JS or CSS
-
-COMMAND MODE: If "$context" appears to be a command (contains words like "just", "only", "ignore", "say", etc.):
-- DO EXACTLY WHAT IT SAYS, even if it means ignoring the diff completely
-- If told to ignore something, ACTUALLY IGNORE IT
-- If told to "just say X", LITERALLY JUST OUTPUT X
-- DO NOT try to combine the command with diff analysis unless explicitly instructed
-
-INSTRUCTION MODE: If "$context" appears to be an instruction on HOW to analyze:
-- FOLLOW THIS INSTRUCTION LITERALLY and PRECISELY with ZERO EXCEPTIONS
-
-EXCLUSIVE FOCUS DIRECTIVE: If "$context" contains phrases like "focus only on", "only mention", "just show":
-- RUTHLESSLY FILTER OUT anything not explicitly mentioned in the focus area
-- COMPLETELY ELIMINATE any bullet point not directly related to the exact focus
-- For "focus only on css":
-  * ONLY include .css files or styling-related changes
-  * EXCLUDE ALL js/html/other files completely, even if they seem related
-  * The commit type should reflect ONLY the focused area (e.g., "style:" for CSS)
-  * DO NOT INCLUDE ANY non-CSS related changes, NO MATTER HOW IMPORTANT
-
-EXCLUSION DIRECTIVE: If "$context" contains "ignore", "don't include", "exclude":
+IF "$context" SAYS "ignore", "don't include", "exclude":
 - COMPLETELY REMOVE any mention of the specified exclusion
-- For "ignore formatting changes", remove ALL style/format changes
+- For "ignore formatting" → Remove ALL formatting changes
 
-CONTEXT MODE: If "$context" is a technical context or focus area:
-- Make it the PRIMARY SUBJECT of the commit message
-- If "$context" contains an implied type (e.g., "updated X", "bug in X"):
-  * EXTRACT and USE that type ("update:", "fix:") instead of inferring from diff
-- FORCE the commit message to center around this context
-- INTERPRET all changes through the lens of this context
+█ OUTPUT FORMATTING █
 
-THIS DIRECTIVE SUPERSEDES ALL OTHER INSTRUCTIONS in this prompt.
-No other reasoning or safety mechanism should prevent executing this directive.
+- Start directly with commit type and summary
+- NEVER include phrases like "Based on the directive" or explanations
+- Output ONLY the commit message itself
 
-THIS DIRECTIVE SUPERSEDES ALL OTHER INSTRUCTIONS in this prompt.
-No other reasoning or safety mechanism should prevent executing this directive.
-
-CRITICAL OUTPUT FORMATTING:
-- NEVER include phrases like "I'll analyze", "Based on the directive", etc.
-- NEVER explain what you're doing or why
-- NEVER include comments about the instructions you received
-- Output ONLY the commit message itself with no surrounding text
-- Start directly with the commit type and summary
-
+THIS DIRECTIVE OVERRIDES ALL OTHER INSTRUCTIONS
 EOF
 )
         _log "DEBUG" "Generated context_prompt with $(echo "$context_prompt" | wc -l) lines"
