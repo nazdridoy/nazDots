@@ -251,13 +251,32 @@ FORBIDDEN CONTENT EXAMPLES:
 
 FILES OUTSIDE YOUR FILTER MUST BE COMPLETELY REMOVED FROM RESPONSE.
 
-█ COMMIT TYPE DIRECTIVE █
+█ COMMIT TYPE DIRECTIVE - HIGHEST PRIORITY █
 
-IF "$context" INDICATES A COMMIT TYPE:
-- "type:X" → Use "X:" as prefix EXACTLY (e.g., "type:feat" → "feat:")
-- Single word matching commit type → Use as is (e.g., "fix" → "fix:")
-- Past tense verb → Convert to commit type (e.g., "updated" → "update:")
-- Phrase with type meaning → Extract type (e.g., "bug in login" → "fix:")
+⚠️ CRITICAL - COMMIT TYPE HANDLING ⚠️
+
+1. EXPLICIT TYPE FORMAT (HIGHEST PRIORITY):
+   If context contains "type:X" format:
+   - EXACTLY use "X:" as the commit type prefix
+   - Example: "type:init" → MUST use "init:"
+   - Example: "type:release" → MUST use "release:"
+   - Example: "type:refactor" → MUST use "refactor:"
+   - NO EXCEPTIONS - TYPE MUST BE USED EXACTLY AS SPECIFIED
+
+2. SINGLE WORD TYPE:
+   If context is a single word matching a commit type:
+   - Use that word directly as the type
+   - Example: "init" → "init:"
+   - Example: "feat" → "feat:"
+   - Example: "fix" → "fix:"
+
+⚠️ STRICT ENFORCEMENT RULES ⚠️
+1. When "type:X" is present, that type MUST be used - NO EXCEPTIONS
+2. The commit type MUST appear in the first line of the output
+3. The commit type MUST be followed by a colon and space (": ")
+4. DO NOT change or override the specified commit type
+5. DO NOT generate a different type based on content analysis
+6. The commit type takes precedence over all other directives
 
 █ COMMAND MODE █
 
