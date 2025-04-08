@@ -575,17 +575,18 @@ Diff chunk:"
                         # G4F doesn't support tor directly
                         _log "INFO" "Executing with Tor: attempt $(($retry_count + 1))/$max_retries"
                         if [[ ${#ai_args[@]} -gt 0 ]]; then
-                            $ai_cmd --tor "${ai_args[@]}" < "$prompt_file" | tee "$tmpfile"
+                            $ai_cmd --tor "${ai_args[@]}" "$(cat "$prompt_file")" | tee "$tmpfile"
                         else
-                            $ai_cmd --tor "$model" < "$prompt_file" | tee "$tmpfile"
+                            $ai_cmd --tor "$model" "$(cat "$prompt_file")" | tee "$tmpfile"
                         fi
                     else
                         # Normal execution with saved args
                         _log "INFO" "Executing without Tor: attempt $(($retry_count + 1))/$max_retries"
                         if [[ ${#ai_args[@]} -gt 0 ]]; then
-                            $ai_cmd "${ai_args[@]}" < "$prompt_file" | tee "$tmpfile"
+                            # All tpt* commands expect arguments, not stdin
+                            $ai_cmd "${ai_args[@]}" "$(cat "$prompt_file")" | tee "$tmpfile"
                         else
-                            $ai_cmd "$model" < "$prompt_file" | tee "$tmpfile"
+                            $ai_cmd "$model" "$(cat "$prompt_file")" | tee "$tmpfile"
                         fi
                         cmd_status=${pipestatus[1]}
                     fi
@@ -809,26 +810,26 @@ Partial analyses to synthesize:"
                     # Execute the command directly without recursion
                     if $use_g4f; then
                         _log "INFO" "Executing rechunk with g4f provider"
-                        $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$rechunk_prompt_file" > "$tempfile"
+                        $ai_cmd -pr "$saved_provider" -ml "$saved_model" "$(cat "$rechunk_prompt_file")" > "$tempfile"
                         cmd_status=$?
                     elif $use_tor; then
                         if $use_nazapi; then
                             _log "INFO" "Executing rechunk with nazapi over tor"
-                            $ai_cmd --tor "${ai_args[@]}" < "$rechunk_prompt_file" > "$tempfile"
+                            $ai_cmd --tor "${ai_args[@]}" "$(cat "$rechunk_prompt_file")" > "$tempfile"
                             cmd_status=$?
                         else
                             _log "INFO" "Executing rechunk with model over tor"
-                            $ai_cmd --tor "$model" < "$rechunk_prompt_file" > "$tempfile"
+                            $ai_cmd --tor "$model" "$(cat "$rechunk_prompt_file")" > "$tempfile"
                             cmd_status=$?
                         fi
                     else
                         if $use_nazapi; then
                             _log "INFO" "Executing rechunk with nazapi"
-                            $ai_cmd "${ai_args[@]}" < "$rechunk_prompt_file" > "$tempfile"
+                            $ai_cmd "${ai_args[@]}" "$(cat "$rechunk_prompt_file")" > "$tempfile"
                             cmd_status=$?
                         else
                             _log "INFO" "Executing rechunk with model"
-                            $ai_cmd "$model" < "$rechunk_prompt_file" > "$tempfile"
+                            $ai_cmd "$model" "$(cat "$rechunk_prompt_file")" > "$tempfile"
                             cmd_status=$?
                         fi
                     fi
@@ -887,45 +888,46 @@ Partial analyses to synthesize:"
         if $use_g4f; then
             if (( recursion_depth > 0 )); then
                 _log "INFO" "Executing final g4f command with recursion"
-                result=$($ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$final_prompt_file")
+                result=$($ai_cmd -pr "$saved_provider" -ml "$saved_model" "$(cat "$final_prompt_file")")
             else
                 _log "INFO" "Executing final g4f command"
-                $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$final_prompt_file"
+                # For tptg, we need to pass the content as an argument rather than stdin
+                $ai_cmd -pr "$saved_provider" -ml "$saved_model" "$(cat "$final_prompt_file")"
             fi
         elif $use_tor; then
             if $use_nazapi; then
                 if (( recursion_depth > 0 )); then
                     _log "INFO" "Executing final nazapi command with tor and recursion"
-                    result=$($ai_cmd --tor "${ai_args[@]}" < "$final_prompt_file")
+                    result=$($ai_cmd --tor "${ai_args[@]}" "$(cat "$final_prompt_file")")
                 else
                     _log "INFO" "Executing final nazapi command with tor"
-                    $ai_cmd --tor "${ai_args[@]}" < "$final_prompt_file"
+                    $ai_cmd --tor "${ai_args[@]}" "$(cat "$final_prompt_file")"
                 fi
             else
                 if (( recursion_depth > 0 )); then
                     _log "INFO" "Executing final command with tor and recursion"
-                    result=$($ai_cmd --tor "$model" < "$final_prompt_file")
+                    result=$($ai_cmd --tor "$model" "$(cat "$final_prompt_file")")
                 else
                     _log "INFO" "Executing final command with tor"
-                    $ai_cmd --tor "$model" < "$final_prompt_file"
+                    $ai_cmd --tor "$model" "$(cat "$final_prompt_file")"
                 fi
             fi
         else
             if $use_nazapi; then
                 if (( recursion_depth > 0 )); then
                     _log "INFO" "Executing final nazapi command with recursion"
-                    result=$($ai_cmd "${ai_args[@]}" < "$final_prompt_file")
+                    result=$($ai_cmd "${ai_args[@]}" "$(cat "$final_prompt_file")")
                 else
                     _log "INFO" "Executing final nazapi command"
-                    $ai_cmd "${ai_args[@]}" < "$final_prompt_file"
+                    $ai_cmd "${ai_args[@]}" "$(cat "$final_prompt_file")"
                 fi
             else
                 if (( recursion_depth > 0 )); then
                     _log "INFO" "Executing final command with recursion"
-                    result=$($ai_cmd "$model" < "$final_prompt_file")
+                    result=$($ai_cmd "$model" "$(cat "$final_prompt_file")")
                 else
                     _log "INFO" "Executing final command"
-                    $ai_cmd "$model" < "$final_prompt_file"
+                    $ai_cmd "$model" "$(cat "$final_prompt_file")"
                 fi
             fi
         fi
