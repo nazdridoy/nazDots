@@ -793,31 +793,81 @@ Partial analyses to synthesize:"
                     # Process the long message as new input with the special template
                     echo "\n🔄 Generating new synthesis..."
                     _log "INFO" "Generating new synthesis at depth $recursion_depth"
-                    local result=$(process_diff "$diff_input" "$rechunk_template")
                     
-                    # Log the result
-                    if $enable_logging; then
-                        local tmp_result_file=$(mktemp)
-                        echo "$result" > "$tmp_result_file"
-                        _log_file_contents "DEBUG" "API_RESULT_DEPTH_${recursion_depth}" "$tmp_result_file"
-                        rm -f "$tmp_result_file"
+                    # FIX: Directly process without recursion for rechunking
+                    local tempfile=$(mktemp)
+                    local cmd_status=0
+                    _log "DEBUG" "Created temporary file for rechunking result: $tempfile"
+                    
+                    # Prepare full prompt in a file
+                    local rechunk_prompt_file=$(mktemp)
+                    echo "$rechunk_template" > "$rechunk_prompt_file"
+                    echo "$diff_input" >> "$rechunk_prompt_file"
+                    _log "DEBUG" "Created rechunk prompt file with $(wc -l < "$rechunk_prompt_file") lines"
+                    _log_file_contents "DEBUG" "RECHUNK_PROMPT_FILE" "$rechunk_prompt_file"
+                    
+                    # Execute the command directly without recursion
+                    if $use_g4f; then
+                        _log "INFO" "Executing rechunk with g4f provider"
+                        $ai_cmd -pr "$saved_provider" -ml "$saved_model" < "$rechunk_prompt_file" > "$tempfile"
+                        cmd_status=$?
+                    elif $use_tor; then
+                        if $use_nazapi; then
+                            _log "INFO" "Executing rechunk with nazapi over tor"
+                            $ai_cmd --tor "${ai_args[@]}" < "$rechunk_prompt_file" > "$tempfile"
+                            cmd_status=$?
+                        else
+                            _log "INFO" "Executing rechunk with model over tor"
+                            $ai_cmd --tor "$model" < "$rechunk_prompt_file" > "$tempfile"
+                            cmd_status=$?
+                        fi
+                    else
+                        if $use_nazapi; then
+                            _log "INFO" "Executing rechunk with nazapi"
+                            $ai_cmd "${ai_args[@]}" < "$rechunk_prompt_file" > "$tempfile"
+                            cmd_status=$?
+                        else
+                            _log "INFO" "Executing rechunk with model"
+                            $ai_cmd "$model" < "$rechunk_prompt_file" > "$tempfile"
+                            cmd_status=$?
+                        fi
+                    fi
+                    
+                    rm -f "$rechunk_prompt_file"
+                    
+                    if [ $cmd_status -ne 0 ]; then
+                        _log "ERROR" "Rechunking failed with status $cmd_status"
+                        echo "❌ Rechunking failed. Aborting."
+                        rm -f "$tempfile"
+                        return 1
                     fi
                     
                     # Show the result
                     echo "\n📋 Rechunking result:"
-                    echo "$result"
-                    _log "DEBUG" "Rechunking result: $(echo "$result" | wc -l) lines"
+                    cat "$tempfile"
+                    
+                    # Update diff_input with the new result
+                    diff_input=$(cat "$tempfile")
+                    rm -f "$tempfile"
+                    
+                    _log "DEBUG" "Rechunking result: $(echo "$diff_input" | wc -l) lines"
                     local tmp_result=$(mktemp)
-                    echo "$result" > "$tmp_result"
+                    echo "$diff_input" > "$tmp_result"
                     _log_file_contents "DEBUG" "RECHUNKING_RESULT" "$tmp_result"
                     rm -f "$tmp_result"
                     
-                    # Update diff_input for next iteration
-                    diff_input="$result"
                     msg_length=$(echo "$diff_input" | wc -l)
                     
                     echo "\n🔄 Recursion depth $recursion_depth - New length: ${msg_length} lines"
                     _log "INFO" "Recursion depth $recursion_depth - New length: ${msg_length} lines"
+                    
+                    # Add a safeguard against empty results which could cause infinite loops
+                    if [ -z "$diff_input" ]; then
+                        _log "ERROR" "Rechunking produced empty result, breaking loop"
+                        echo "⚠️ Rechunking produced empty result, continuing with final processing..."
+                        diff_input="ERROR: Rechunking produced empty result. Please try with smaller diff or without recursive chunking."
+                        break
+                    fi
                 done
             fi
         fi

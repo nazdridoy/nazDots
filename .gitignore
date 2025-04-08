@@ -6,3 +6,4 @@
 **/zsh/.zcompcache/
 **/zsh/.zhistory
 **/*.log
+**/*.bkp
