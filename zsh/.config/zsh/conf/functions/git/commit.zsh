@@ -314,7 +314,7 @@ EOF
     local template="$context_prompt   Analyze ONLY the exact changes in this git diff and create a precise, factual commit message.
 
 FORMAT:
-type: <concise summary> (max 50 chars)
+type[(scope)]: <concise summary> (max 50 chars)
 
 - [type] <specific change 1> (filename:function/method/line)
 - [type] <specific change 2> (filename:function/method/line)
@@ -366,11 +366,18 @@ Do not ask for the original git diff - the partial analyses already contain all 
 EXAMPLE:
 Given a diff showing error handling added to auth.js and timeout changes in config.json:
 
-fix: Improve authentication error handling
+fix(auth): Improve authentication error handling
 
 - [fix] Add try/catch in auth.js:authenticateUser()
 - [fix] Handle network timeouts in auth.js:loginCallback()
 - [config] Increase API timeout from 3000ms to 5000ms in config.json
+
+SCOPE RULES:
+1. Only include scope when you are 100% confident about the affected area
+2. Scope should be a short, lowercase identifier (e.g., auth, api, ui, docs)
+3. If scope is unclear or changes affect multiple areas, omit the scope
+4. Common scopes: auth, api, ui, docs, test, build, deps, config
+5. Scope should match the primary area of change
 
 Git diff or partial analyses to process:"
 
@@ -664,8 +671,13 @@ TASK: Synthesize these partial analyses into a complete conventional commit mess
 $partial_analyses
 
 Create a CONVENTIONAL COMMIT MESSAGE with:
-1. First line: \"type: brief summary\" (50 chars max)
-2. One blank line
+1. First line: \"type[(scope)]: brief summary\" (50 chars max)
+   - Include scope ONLY if you are 100% confident about the affected area
+   - Omit scope if changes affect multiple areas or scope is unclear
+2. ⚠️ ONE BLANK LINE IS MANDATORY - NEVER SKIP THIS STEP ⚠️
+   - This blank line MUST be present in EVERY commit message
+   - The blank line separates the summary from the detailed changes
+   - Without this blank line, the commit message format is invalid
 3. Bullet points with specific changes, each with appropriate [type] tag
 4. Reference files in EACH bullet point with function names or line numbers
 
@@ -675,6 +687,32 @@ FILENAME & FUNCTION HANDLING RULES:
 - Use short relative paths for files (e.g., 'Provider/Chatai.py' instead of 'g4f/Provider/Chatai.py')
 - Group related changes to the same file when appropriate
 - Avoid breaking long filenames across lines
+
+EXAMPLES OF GOOD COMMITS:
+fix(auth): Improve authentication error handling
+
+- [fix] Add try/catch in auth.js:authenticateUser()
+- [fix] Handle network timeouts in auth.js:loginCallback()
+
+feat: Add new data processing pipeline
+
+- [feat] Implement data transformation pipeline
+- [test] Add unit tests for pipeline components
+
+refactor(ui): Restructure component hierarchy
+
+- [refactor] Extract common UI components
+- [style] Update component styling
+
+docs: Update API documentation
+
+- [docs] Add authentication endpoints documentation
+- [docs] Update request/response examples
+
+test: Add integration tests for payment flow
+
+- [test] Add payment gateway integration tests
+- [test] Add transaction validation tests
 
 EXAMPLES OF GOOD BULLETS:
 - [refactor] Update model function signature in models.py:process_input()
@@ -714,7 +752,7 @@ The following contains partial analyses of git changes that have already been pr
 Your task is to synthesize these analyses into a CONVENTIONAL COMMIT MESSAGE.
 
 FORMAT:
-type: <concise summary> (max 50 chars)
+type[(scope)]: <concise summary> (max 50 chars)
 
 - [type] <specific change 1> (filename:function/method/line)
 - [type] <specific change 2> (filename:function/method/line)
