@@ -305,7 +305,7 @@ tptp() {
 }
 
 ## tgpt with duckduckgo provider and multiple models
-tptd() {
+tptb() {
     local model="o3-mini"  # Set default model first
     local use_tor=false
     local base_url="http://localhost:1337"
@@ -322,7 +322,7 @@ tptd() {
                     shift
                     ;;
                 "--help"|"-h")
-                    echo "Usage: tptd [--tor] [-flags] <query>"
+                    echo "Usage: tptb [--tor] [-flags] <query>"
                     echo "Using G4F environment settings:"
                     echo "  Provider: $G4F_PROVIDER"
                     echo "  Model: $G4F_MODEL"
@@ -369,7 +369,7 @@ tptd() {
         return
     fi
 
-    # Original tptd functionality if G4F env is not set
+    # Original tptb functionality if G4F env is not set
     while [[ $# -gt 0 ]]; do
         case "${1:-}" in
             "--tor")
@@ -397,7 +397,7 @@ tptd() {
                 shift
                 ;;
             "--help"|"-h")
-                echo "Usage: tptd [--tor] [model] <query>"
+                echo "Usage: tptb [--tor] [model] <query>"
                 echo "Available models:"
                 echo "  gpt, 1     : gpt-4o-mini"
                 echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
@@ -578,20 +578,20 @@ _xtgpt() {
 
     # Handle help first
     if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        echo "Usage: xtptp/xtptd/xtptc/xtptn/xtptg <template> [--tor] [model]"
+        echo "Usage: xtptp/xtptb/xtptc/xtptn/xtptg <template> [--tor] [model]"
         echo ""
         echo "Replace placeholders in the template with input and execute the command."
         echo ""
         echo "Arguments:"
         echo "  <template>    A text template with placeholders (e.g. 'hello {}, how are you?')"
         echo "  --tor        Route traffic through Tor network"
-        echo "  [model]       For xtptd: model number (1-5) or name (gpt/llama/claude/o3/mistral)"
+        echo "  [model]       For xtptb: model number (1-5) or name (gpt/llama/claude/o3/mistral)"
         echo "                For xtptc: model number (1-3) or name (llama/deepseek/llama70b)"
         echo "                For xtptn: Use -ml <modelname> to specify model"
         echo "                For xtptg: Use -pr <provider> -ml <model> to specify provider and model"
         echo ""
         echo "Example:"
-        echo "  echo \"Vscode\" | xtptd \"what is {}, can it play music?\" --tor claude"
+        echo "  echo \"Vscode\" | xtptb \"what is {}, can it play music?\" --tor claude"
         echo "  echo \"Python\" | xtptc \"explain {} in simple terms\" --tor llama70b"
         echo "  echo \"Docker\" | xtptn --tor -ml deepseek-r1:14b 'how to optimize {} containers?'"
         echo "  echo \"AI\" | xtptg \"explain {}\" -pr DDG -ml o3-mini"
@@ -722,7 +722,7 @@ _xtgpt() {
 
 # Create functions for different providers
 xtptc() { _xtgpt "tptc" "$@" }
-xtptd() { _xtgpt "tptd" "$@" }
+xtptb() { _xtgpt "tptb" "$@" }
 xtptp() { _xtgpt "tptp" "$@" }
 xtptn() { _xtgpt "tptn" "$@" }
 xtptg() { _xtgpt "tptg" "$@" }
