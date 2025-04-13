@@ -376,34 +376,49 @@ tptb() {
                 use_tor=true
                 shift
                 ;;
-            "gpt"|"1")
+            "gpt4o-mini"|"1")
                 model="gpt-4o-mini"
                 shift
                 ;;
-            "llama"|"2")
-                model="meta-llama/Llama-3.3-70B-Instruct-Turbo"
+            "gpt4o"|"2")
+                model="GPT-4o"
                 shift
                 ;;
-            "claude"|"3")
-                model="claude-3-haiku-20240307"
+            "o1"|"3")
+                model="o1"
                 shift
                 ;;
             "o3"|"4")
                 model="o3-mini"
                 shift
                 ;;
-            "mistral"|"5")
-                model="mistralai/Mistral-Small-24B-Instruct-2501"
+            "claude37"|"5")
+                model="Claude-sonnet-3.7"
+                shift
+                ;;
+            "claude35"|"6")
+                model="Claude-sonnet-3.5"
+                shift
+                ;;
+            "deepseekv3"|"7")
+                model="DeepSeek-V3"
+                shift
+                ;;
+            "deepseekr1"|"8")
+                model="DeepSeek-R1"
                 shift
                 ;;
             "--help"|"-h")
                 echo "Usage: tptb [--tor] [model] <query>"
                 echo "Available models:"
-                echo "  gpt, 1     : gpt-4o-mini"
-                echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
-                echo "  claude, 3  : claude-3-haiku-20240307"
-                echo "  o3, 4      : o3-mini"
-                echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
+                echo "  gpt4o-mini, 1  : gpt-4o-mini"
+                echo "  gpt4o, 2      : GPT-4o"
+                echo "  o1, 3         : o1"
+                echo "  o3, 4         : o3-mini"
+                echo "  claude37, 5   : Claude-sonnet-3.7"
+                echo "  claude35, 6   : Claude-sonnet-3.5"
+                echo "  deepseekv3, 7 : DeepSeek-V3"
+                echo "  deepseekr1, 8 : DeepSeek-R1"
                 echo "Default: o3-mini"
                 echo ""
                 echo "Options:"
