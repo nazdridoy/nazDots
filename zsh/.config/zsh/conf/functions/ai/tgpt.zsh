@@ -421,9 +421,15 @@ tptb() {
             echo "Error: torify not found. Please install tor package."
             return 1
         fi
-        torify tgpt --provider duckduckgo --model "$model" "$@"
+        torify tgpt --provider openai \
+            --url "$base_url/api/Blackbox/chat/completions" \
+            --model "$model" \
+            "$@"
     else
-        tgpt --provider duckduckgo --model "$model" "$@"
+        tgpt --provider openai \
+            --url "$base_url/api/Blackbox/chat/completions" \
+            --model "$model" \
+            "$@"
     fi
 }
 
