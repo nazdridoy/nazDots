@@ -17,29 +17,32 @@ rewrite() {
                 echo "Options:"
                 echo "  --tor        Route traffic through Tor network"
                 echo ""
-                echo "Available models (same as tptd):"
-                echo "  gpt, 1     : gpt-4o-mini"
-                echo "  llama, 2   : Llama-3.3-70B-Instruct-Turbo"
-                echo "  claude, 3  : claude-3-haiku-20240307"
-                echo "  o3, 4      : o3-mini"
-                echo "  mistral, 5 : Mistral-Small-24B-Instruct-2501"
+                echo "Available models (same as tptb):"
+                echo "  gpt4o-mini, 1  : gpt-4o-mini"
+                echo "  gpt4o, 2      : GPT-4o"
+                echo "  o1, 3         : o1"
+                echo "  o3, 4         : o3-mini"
+                echo "  claude37, 5   : Claude-sonnet-3.7"
+                echo "  claude35, 6   : Claude-sonnet-3.5"
+                echo "  deepseekv3, 7 : DeepSeek-V3"
+                echo "  deepseekr1, 8 : DeepSeek-R1"
                 echo ""
                 echo "Examples:"
                 echo "  echo \"your text\" | rewrite"
-                echo "  echo \"angry message\" | rewrite --tor llama"
-                echo "  cat file.txt | rewrite --tor claude"
+                echo "  echo \"angry message\" | rewrite --tor claude37"
+                echo "  cat file.txt | rewrite --tor 5"
                 echo ""
                 echo "Default: o3"
                 return 0
                 ;;
-            gpt|1|llama|2|claude|3|o3|4|mistral|5)
+            gpt4o-mini|1|gpt4o|2|o1|3|o3|4|claude37|5|claude35|6|deepseekv3|7|deepseekr1|8)
                 model="$1"
                 shift
                 break
                 ;;
             *)
                 echo "Error: Invalid model '$1'"
-                echo "Valid models: gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                echo "Valid models: gpt4o-mini/1, gpt4o/2, o1/3, o3/4, claude37/5, claude35/6, deepseekv3/7, deepseekr1/8"
                 return 1
                 ;;
         esac
@@ -97,11 +100,11 @@ TEMPLATE
     # Create a temporary file to store the result
     local temp_file=$(mktemp)
     
-    # Process with tptd
+    # Process with tptb
     if $use_tor; then
-        tptd --tor "$model" "$template" > "$temp_file"
+        tptb --tor "$model" "$template" > "$temp_file"
     else
-        tptd "$model" "$template" > "$temp_file"
+        tptb "$model" "$template" > "$temp_file"
     fi
     
     # Display the result
