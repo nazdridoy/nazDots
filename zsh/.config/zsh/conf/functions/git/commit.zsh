@@ -1,6 +1,6 @@
 # AI-powered Git commit message generator
 gitcommsg() {
-    local model="o3"
+    local model="claude37"
     local context=""
     local chunk_mode=false
     local recursive_chunk=false
@@ -70,7 +70,7 @@ gitcommsg() {
                 echo "    Interactive selection or specify with -pr and -ml"
                 echo ""
                 echo "Examples:"
-                echo "  gitcommsg                        # uses o3 (default)"
+                echo "  gitcommsg                        # uses claude37 (default)"
                 echo "  gitcommsg gpt4o                  # uses gpt4o model"
                 echo "  gitcommsg -m \"important fix\"     # adds context"
                 echo "  gitcommsg claude37 -m \"refactor\" # model + context"
