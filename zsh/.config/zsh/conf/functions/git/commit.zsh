@@ -63,7 +63,7 @@ gitcommsg() {
                 echo ""
                 echo "Available models:"
                 echo "  Online (default):"
-                echo "    gpt/1, llama/2, claude/3, o3/4, mistral/5"
+                echo "    gpt4o-mini/1, gpt4o/2, o1/3, o3/4, claude37/5, claude35/6, deepseekv3/7, deepseekr1/8"
                 echo "  nazOllama API (-ml):"
                 echo "    Any model supported by tptn (e.g. deepseek-r1:14b)"
                 echo "  gpt4free (--g4f):"
@@ -71,10 +71,10 @@ gitcommsg() {
                 echo ""
                 echo "Examples:"
                 echo "  gitcommsg                        # uses o3 (default)"
-                echo "  gitcommsg llama                  # uses llama model"
+                echo "  gitcommsg gpt4o                  # uses gpt4o model"
                 echo "  gitcommsg -m \"important fix\"     # adds context"
-                echo "  gitcommsg claude -m \"refactor\"   # model + context"
-                echo "  gitcommsg -ml deepseek-r1:14b      # uses nazOllama API with specified model"
+                echo "  gitcommsg claude37 -m \"refactor\" # model + context"
+                echo "  gitcommsg -ml deepseek-r1:14b    # uses nazOllama API with specified model"
                 echo "  gitcommsg --tor -ml llama3.2:latest -m \"security fix\""
                 echo "  gitcommsg --g4f                  # uses interactive gpt4free selection"
                 echo "  gitcommsg --g4f -pr DDG -ml o3-mini # uses specific gpt4free provider/model"
@@ -157,12 +157,12 @@ gitcommsg() {
                 # Validate model argument if not using g4f or nazapi
                 if ! $use_g4f && ! $use_nazapi; then
                     case "$1" in
-                        gpt|1|llama|2|claude|3|o3|4|mistral|5) 
+                        gpt4o-mini|1|gpt4o|2|o1|3|o3|4|claude37|5|claude35|6|deepseekv3|7|deepseekr1|8) 
                             model="$1"
                             shift
                             ;;
                         *)
-                            echo "Error: Invalid model '$1' (valid: gpt/1, llama/2, claude/3, o3/4, mistral/5)"
+                            echo "Error: Invalid model '$1' (valid: gpt4o-mini/1, gpt4o/2, o1/3, o3/4, claude37/5, claude35/6, deepseekv3/7, deepseekr1/8)"
                             return 1
                             ;;
                     esac
@@ -393,7 +393,7 @@ Git diff or partial analyses to process:"
         local template="$2"
         local recursion_depth=0
         local max_recursion=3
-        local ai_cmd="tptd"
+        local ai_cmd="tptb"
         local ai_args=()
 
         _log "INFO" "Starting process_diff function with recursion_depth=$recursion_depth"
