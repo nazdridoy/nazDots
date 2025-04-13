@@ -423,6 +423,13 @@ tptb() {
                 echo ""
                 echo "Options:"
                 echo "  --tor      : Route traffic through Tor network"
+                echo ""
+                echo "Examples:"
+                echo "  tptb \"What is quantum computing?\""
+                echo "  tptb gpt4o \"Explain AI in simple terms\""
+                echo "  tptb 5 \"Write a poem about nature\""
+                echo "  tptb --tor claude37 \"What is dark matter?\""
+                echo "  tptb deepseekv3 \"How does a neural network work?\""
                 return 0
                 ;;
             *)
@@ -606,17 +613,18 @@ _xtgpt() {
         echo "Arguments:"
         echo "  <template>    A text template with placeholders (e.g. 'hello {}, how are you?')"
         echo "  --tor        Route traffic through Tor network"
-        echo "  [model]       For xtptb: model number (1-5) or name (gpt/llama/claude/o3/mistral)"
+        echo "  [model]       For xtptb: model number (1-8) or name (gpt4o-mini/gpt4o/o1/o3/claude37/claude35/deepseekv3/deepseekr1)"
         echo "                For xtptc: model number (1-3) or name (llama/deepseek/llama70b)"
         echo "                For xtptn: Use -ml <modelname> to specify model"
         echo "                For xtptg: Use -pr <provider> -ml <model> to specify provider and model"
         echo ""
-        echo "Example:"
-        echo "  echo \"Vscode\" | xtptb \"what is {}, can it play music?\" --tor claude"
-        echo "  echo \"Python\" | xtptc \"explain {} in simple terms\" --tor llama70b"
-        echo "  echo \"Docker\" | xtptn --tor -ml deepseek-r1:14b 'how to optimize {} containers?'"
+        echo "Examples:"
+        echo "  echo \"Vscode\" | xtptb \"what is {}, can it play music?\" --tor gpt4o"
+        echo "  echo \"Python\" | xtptb \"explain {} in simple terms\" claude37"
+        echo "  echo \"Docker\" | xtptb \"how to optimize {} containers?\" 7"
+        echo "  echo \"AI\" | xtptc \"explain {}\" --tor llama70b"
+        echo "  echo \"AI\" | xtptn -ml deepseek-r1:14b 'explain {}'"
         echo "  echo \"AI\" | xtptg \"explain {}\" -pr DDG -ml o3-mini"
-        echo "  echo \"AI\" | xtptg \"explain {}\" -ml deepseek-r1:14b"
         echo ""
         return 0
     fi
