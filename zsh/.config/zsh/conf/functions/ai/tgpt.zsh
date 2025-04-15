@@ -306,7 +306,7 @@ tptp() {
 
 ## tgpt with duckduckgo provider and multiple models
 tptb() {
-    local model="o3-mini"  # Set default model first
+    local model="DeepSeek-V3"  # Set default model first
     local use_tor=false
     local base_url="http://localhost:1337"
     local tgpt_args=()  # Array to store tgpt arguments
