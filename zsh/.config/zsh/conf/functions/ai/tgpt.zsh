@@ -308,7 +308,7 @@ tptp() {
 tptb() {
     local model="DeepSeek-V3"  # Set default model first
     local use_tor=false
-    local base_url="http://localhost:1337"
+    local base_url="http://127.0.0.1:1337/v1"
     local tgpt_args=()  # Array to store tgpt arguments
     local prompt=""
 
@@ -355,13 +355,13 @@ tptb() {
                 return 1
             fi
             torify tgpt --provider openai \
-                --url "$base_url/api/$G4F_PROVIDER/chat/completions" \
+                --url "$base_url/chat/completions" \
                 --model "$G4F_MODEL" \
                 "${tgpt_args[@]}" \
                 "$prompt"
         else
             tgpt --provider openai \
-                --url "$base_url/api/$G4F_PROVIDER/chat/completions" \
+                --url "$base_url/chat/completions" \
                 --model "$G4F_MODEL" \
                 "${tgpt_args[@]}" \
                 "$prompt"
@@ -376,49 +376,124 @@ tptb() {
                 use_tor=true
                 shift
                 ;;
-            "gpt4o-mini"|"1")
+            "blackboxai-pro"|"1")
+                model="blackboxai-pro"
+                shift
+                ;;
+            "blackboxai"|"2")
+                model="blackboxai"
+                shift
+                ;;
+            "claude-3-haiku"|"3")
+                model="claude-3-haiku"
+                shift
+                ;;
+            "claude-3.5-sonnet"|"4")
+                model="claude-3.5-sonnet"
+                shift
+                ;;
+            "claude-3.7-sonnet"|"5")
+                model="claude-3.7-sonnet"
+                shift
+                ;;
+            "deepseek-chat"|"6")
+                model="deepseek-chat"
+                shift
+                ;;
+            "deepseek-r1"|"7")
+                model="deepseek-r1"
+                shift
+                ;;
+            "deepseek-v3"|"8")
+                model="deepseek-v3"
+                shift
+                ;;
+            "evil"|"9")
+                model="evil"
+                shift
+                ;;
+            "glm-4"|"10")
+                model="glm-4"
+                shift
+                ;;
+            "gpt-4"|"11")
+                model="gpt-4"
+                shift
+                ;;
+            "gpt-4o-mini"|"12")
                 model="gpt-4o-mini"
                 shift
                 ;;
-            "gpt4o"|"2")
-                model="GPT-4o"
+            "gpt-4o"|"13")
+                model="gpt-4o"
                 shift
                 ;;
-            "o1"|"3")
-                model="o1"
+            "hermes-3"|"14")
+                model="hermes-3"
                 shift
                 ;;
-            "o3"|"4")
+            "lfm-40b"|"15")
+                model="lfm-40b"
+                shift
+                ;;
+            "llama-3.1-70b"|"16")
+                model="llama-3.1-70b"
+                shift
+                ;;
+            "llama-3.3-70b"|"17")
+                model="llama-3.3-70b"
+                shift
+                ;;
+            "llama-4-scout"|"18")
+                model="llama-4-scout"
+                shift
+                ;;
+            "meta-ai"|"19")
+                model="meta-ai"
+                shift
+                ;;
+            "o3-mini"|"20")
                 model="o3-mini"
                 shift
                 ;;
-            "claude37"|"5")
-                model="Claude-sonnet-3.7"
+            "r1-1776"|"21")
+                model="r1-1776"
                 shift
                 ;;
-            "claude35"|"6")
-                model="Claude-sonnet-3.5"
+            "sonar-pro"|"22")
+                model="sonar-pro"
                 shift
                 ;;
-            "deepseekv3"|"7")
-                model="DeepSeek-V3"
-                shift
-                ;;
-            "deepseekr1"|"8")
-                model="DeepSeek-R1"
+            "sonar-reasoning-pro"|"23")
+                model="sonar-reasoning-pro"
                 shift
                 ;;
             "--help"|"-h")
                 echo "Usage: tptb [--tor] [model] <query>"
                 echo "Available models:"
-                echo "  gpt4o-mini, 1  : gpt-4o-mini"
-                echo "  gpt4o, 2      : GPT-4o"
-                echo "  o1, 3         : o1"
-                echo "  o3, 4         : o3-mini"
-                echo "  claude37, 5   : Claude-sonnet-3.7"
-                echo "  claude35, 6   : Claude-sonnet-3.5"
-                echo "  deepseekv3, 7 : DeepSeek-V3"
-                echo "  deepseekr1, 8 : DeepSeek-R1"
+                echo "  blackboxai-pro, 1     : blackboxai-pro"
+                echo "  blackboxai, 2         : blackboxai"
+                echo "  claude-3-haiku, 3     : claude-3-haiku"
+                echo "  claude-3.5-sonnet, 4  : claude-3.5-sonnet"
+                echo "  claude-3.7-sonnet, 5  : claude-3.7-sonnet"
+                echo "  deepseek-chat, 6      : deepseek-chat"
+                echo "  deepseek-r1, 7        : deepseek-r1"
+                echo "  deepseek-v3, 8        : deepseek-v3"
+                echo "  evil, 9               : evil"
+                echo "  glm-4, 10             : glm-4"
+                echo "  gpt-4, 11             : gpt-4"
+                echo "  gpt-4o-mini, 12       : gpt-4o-mini"
+                echo "  gpt-4o, 13            : gpt-4o"
+                echo "  hermes-3, 14          : hermes-3"
+                echo "  lfm-40b, 15           : lfm-40b"
+                echo "  llama-3.1-70b, 16     : llama-3.1-70b"
+                echo "  llama-3.3-70b, 17     : llama-3.3-70b"
+                echo "  llama-4-scout, 18     : llama-4-scout"
+                echo "  meta-ai, 19           : meta-ai"
+                echo "  o3-mini, 20           : o3-mini"
+                echo "  r1-1776, 21           : r1-1776"
+                echo "  sonar-pro, 22         : sonar-pro"
+                echo "  sonar-reasoning-pro, 23: sonar-reasoning-pro"
                 echo "Default: o3-mini"
                 echo ""
                 echo "Options:"
@@ -426,10 +501,10 @@ tptb() {
                 echo ""
                 echo "Examples:"
                 echo "  tptb \"What is quantum computing?\""
-                echo "  tptb gpt4o \"Explain AI in simple terms\""
+                echo "  tptb gpt-4o \"Explain AI in simple terms\""
                 echo "  tptb 5 \"Write a poem about nature\""
-                echo "  tptb --tor claude37 \"What is dark matter?\""
-                echo "  tptb deepseekv3 \"How does a neural network work?\""
+                echo "  tptb --tor claude-3.7-sonnet \"What is dark matter?\""
+                echo "  tptb deepseek-v3 \"How does a neural network work?\""
                 return 0
                 ;;
             *)
@@ -444,12 +519,12 @@ tptb() {
             return 1
         fi
         torify tgpt --provider openai \
-            --url "$base_url/api/Blackbox/chat/completions" \
+            --url "$base_url/chat/completions" \
             --model "$model" \
             "$@"
     else
         tgpt --provider openai \
-            --url "$base_url/api/Blackbox/chat/completions" \
+            --url "$base_url/chat/completions" \
             --model "$model" \
             "$@"
     fi
