@@ -1,6 +1,6 @@
 # AI-powered Git commit message generator
 gitcommsg() {
-    local model="deepseekv3"
+    local model="sonar-pro"
     local context=""
     local chunk_mode=false
     local recursive_chunk=false
