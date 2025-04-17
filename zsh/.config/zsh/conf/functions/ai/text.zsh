@@ -1,6 +1,6 @@
 # AI-powered text rewriter that preserves tone
 rewrite() {
-    local model="o3"
+    local model="sonar-pro"
     local use_tor=false
     
     # Parse arguments
@@ -18,31 +18,50 @@ rewrite() {
                 echo "  --tor        Route traffic through Tor network"
                 echo ""
                 echo "Available models (same as tptb):"
-                echo "  gpt4o-mini, 1  : gpt-4o-mini"
-                echo "  gpt4o, 2      : GPT-4o"
-                echo "  o1, 3         : o1"
-                echo "  o3, 4         : o3-mini"
-                echo "  claude37, 5   : Claude-sonnet-3.7"
-                echo "  claude35, 6   : Claude-sonnet-3.5"
-                echo "  deepseekv3, 7 : DeepSeek-V3"
-                echo "  deepseekr1, 8 : DeepSeek-R1"
+                echo "  blackboxai-pro, 1     : blackboxai-pro"
+                echo "  blackboxai, 2         : blackboxai"
+                echo "  claude-3-haiku, 3     : claude-3-haiku"
+                echo "  claude-3.5-sonnet, 4  : claude-3.5-sonnet"
+                echo "  claude-3.7-sonnet, 5  : claude-3.7-sonnet"
+                echo "  deepseek-chat, 6      : deepseek-chat"
+                echo "  deepseek-r1, 7        : deepseek-r1"
+                echo "  deepseek-v3, 8        : deepseek-v3"
+                echo "  evil, 9               : evil"
+                echo "  glm-4, 10             : glm-4"
+                echo "  gpt-4, 11             : gpt-4"
+                echo "  gpt-4o-mini, 12       : gpt-4o-mini"
+                echo "  gpt-4o, 13            : gpt-4o"
+                echo "  hermes-3, 14          : hermes-3"
+                echo "  lfm-40b, 15           : lfm-40b"
+                echo "  llama-3.1-70b, 16     : llama-3.1-70b"
+                echo "  llama-3.3-70b, 17     : llama-3.3-70b"
+                echo "  llama-4-scout, 18     : llama-4-scout"
+                echo "  meta-ai, 19           : meta-ai"
+                echo "  o3-mini, 20           : o3-mini"
+                echo "  r1-1776, 21           : r1-1776"
+                echo "  sonar-pro, 22         : sonar-pro"
+                echo "  sonar-reasoning-pro, 23: sonar-reasoning-pro"
                 echo ""
                 echo "Examples:"
                 echo "  echo \"your text\" | rewrite"
-                echo "  echo \"angry message\" | rewrite --tor claude37"
+                echo "  echo \"angry message\" | rewrite --tor claude-3.7-sonnet"
                 echo "  cat file.txt | rewrite --tor 5"
                 echo ""
-                echo "Default: o3"
+                echo "Default: sonar-pro"
                 return 0
                 ;;
-            gpt4o-mini|1|gpt4o|2|o1|3|o3|4|claude37|5|claude35|6|deepseekv3|7|deepseekr1|8)
+            blackboxai-pro|1|blackboxai|2|claude-3-haiku|3|claude-3.5-sonnet|4|claude-3.7-sonnet|5|deepseek-chat|6|deepseek-r1|7|deepseek-v3|8|evil|9|glm-4|10|gpt-4|11|gpt-4o-mini|12|gpt-4o|13|hermes-3|14|lfm-40b|15|llama-3.1-70b|16|llama-3.3-70b|17|llama-4-scout|18|meta-ai|19|o3-mini|20|r1-1776|21|sonar-pro|22|sonar-reasoning-pro|23)
                 model="$1"
                 shift
                 break
                 ;;
             *)
                 echo "Error: Invalid model '$1'"
-                echo "Valid models: gpt4o-mini/1, gpt4o/2, o1/3, o3/4, claude37/5, claude35/6, deepseekv3/7, deepseekr1/8"
+                echo "Valid models: blackboxai-pro/1, blackboxai/2, claude-3-haiku/3, claude-3.5-sonnet/4,"
+                echo "claude-3.7-sonnet/5, deepseek-chat/6, deepseek-r1/7, deepseek-v3/8,"
+                echo "evil/9, glm-4/10, gpt-4/11, gpt-4o-mini/12, gpt-4o/13, hermes-3/14,"
+                echo "lfm-40b/15, llama-3.1-70b/16, llama-3.3-70b/17, llama-4-scout/18,"
+                echo "meta-ai/19, o3-mini/20, r1-1776/21, sonar-pro/22, sonar-reasoning-pro/23"
                 return 1
                 ;;
         esac
