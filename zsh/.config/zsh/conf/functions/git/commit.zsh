@@ -63,17 +63,21 @@ gitcommsg() {
                 echo ""
                 echo "Available models:"
                 echo "  Online (default):"
-                echo "    gpt4o-mini/1, gpt4o/2, o1/3, o3/4, claude37/5, claude35/6, deepseekv3/7, deepseekr1/8"
+                echo "    blackboxai-pro/1, blackboxai/2, claude-3-haiku/3, claude-3.5-sonnet/4,"
+                echo "    claude-3.7-sonnet/5, deepseek-chat/6, deepseek-r1/7, deepseek-v3/8,"
+                echo "    evil/9, glm-4/10, gpt-4/11, gpt-4o-mini/12, gpt-4o/13, hermes-3/14,"
+                echo "    lfm-40b/15, llama-3.1-70b/16, llama-3.3-70b/17, llama-4-scout/18,"
+                echo "    meta-ai/19, o3-mini/20, r1-1776/21, sonar-pro/22, sonar-reasoning-pro/23"
                 echo "  nazOllama API (-ml):"
                 echo "    Any model supported by tptn (e.g. deepseek-r1:14b)"
                 echo "  gpt4free (--g4f):"
                 echo "    Interactive selection or specify with -pr and -ml"
                 echo ""
                 echo "Examples:"
-                echo "  gitcommsg                        # uses claude37 (default)"
-                echo "  gitcommsg gpt4o                  # uses gpt4o model"
+                echo "  gitcommsg                        # uses sonar-pro (default)"
+                echo "  gitcommsg gpt-4o                  # uses gpt-4o model"
                 echo "  gitcommsg -m \"important fix\"     # adds context"
-                echo "  gitcommsg claude37 -m \"refactor\" # model + context"
+                echo "  gitcommsg claude-3.7-sonnet -m \"refactor\" # model + context"
                 echo "  gitcommsg -ml deepseek-r1:14b    # uses nazOllama API with specified model"
                 echo "  gitcommsg --tor -ml llama3.2:latest -m \"security fix\""
                 echo "  gitcommsg --g4f                  # uses interactive gpt4free selection"
@@ -157,12 +161,17 @@ gitcommsg() {
                 # Validate model argument if not using g4f or nazapi
                 if ! $use_g4f && ! $use_nazapi; then
                     case "$1" in
-                        gpt4o-mini|1|gpt4o|2|o1|3|o3|4|claude37|5|claude35|6|deepseekv3|7|deepseekr1|8) 
+                        blackboxai-pro|1|blackboxai|2|claude-3-haiku|3|claude-3.5-sonnet|4|claude-3.7-sonnet|5|deepseek-chat|6|deepseek-r1|7|deepseek-v3|8|evil|9|glm-4|10|gpt-4|11|gpt-4o-mini|12|gpt-4o|13|hermes-3|14|lfm-40b|15|llama-3.1-70b|16|llama-3.3-70b|17|llama-4-scout|18|meta-ai|19|o3-mini|20|r1-1776|21|sonar-pro|22|sonar-reasoning-pro|23) 
                             model="$1"
                             shift
                             ;;
                         *)
-                            echo "Error: Invalid model '$1' (valid: gpt4o-mini/1, gpt4o/2, o1/3, o3/4, claude37/5, claude35/6, deepseekv3/7, deepseekr1/8)"
+                            echo "Error: Invalid model '$1'"
+                            echo "Valid models: blackboxai-pro/1, blackboxai/2, claude-3-haiku/3, claude-3.5-sonnet/4,"
+                            echo "claude-3.7-sonnet/5, deepseek-chat/6, deepseek-r1/7, deepseek-v3/8,"
+                            echo "evil/9, glm-4/10, gpt-4/11, gpt-4o-mini/12, gpt-4o/13, hermes-3/14,"
+                            echo "lfm-40b/15, llama-3.1-70b/16, llama-3.3-70b/17, llama-4-scout/18,"
+                            echo "meta-ai/19, o3-mini/20, r1-1776/21, sonar-pro/22, sonar-reasoning-pro/23"
                             return 1
                             ;;
                     esac
