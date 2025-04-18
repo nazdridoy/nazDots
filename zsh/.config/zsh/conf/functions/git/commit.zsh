@@ -791,9 +791,8 @@ Partial analyses to synthesize:"
                     _log "INFO" "Starting re-chunking at depth $recursion_depth"
                     
                     # For debugging, show a preview of what's being processed
-                    echo "\n📄 Processing the following combined analyses:"
-                    echo "$diff_input" | head -n 20
-                    echo "... (total ${msg_length} lines)"
+                    echo "\n📄 Processing combined analyses (${msg_length} lines)"
+                    # Don't show the actual content to avoid crowded output
                     _log "DEBUG" "Processing combined analyses with $msg_length lines"
                     local tmp_analyses=$(mktemp)
                     echo "$diff_input" > "$tmp_analyses"
