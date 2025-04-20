@@ -314,6 +314,9 @@ tptb() {
 
     # Check if G4F environment variables are set
     if [[ -n "$G4F_PROVIDER" && -n "$G4F_MODEL" ]]; then
+        # Set the correct base URL without v1 for G4F provider
+        local g4f_base_url="http://127.0.0.1:1337"
+        
         # Parse arguments - looking for flags and the prompt
         while [[ $# -gt 0 ]]; do
             case "${1:-}" in
@@ -355,13 +358,13 @@ tptb() {
                 return 1
             fi
             torify tgpt --provider openai \
-                --url "$base_url/chat/completions" \
+                --url "$g4f_base_url/api/$G4F_PROVIDER/chat/completions" \
                 --model "$G4F_MODEL" \
                 "${tgpt_args[@]}" \
                 "$prompt"
         else
             tgpt --provider openai \
-                --url "$base_url/chat/completions" \
+                --url "$g4f_base_url/api/$G4F_PROVIDER/chat/completions" \
                 --model "$G4F_MODEL" \
                 "${tgpt_args[@]}" \
                 "$prompt"
