@@ -14,7 +14,6 @@ source "$FUNCTIONS_DIR/search/web.zsh"
 
 # Load AI-related functions
 source "$FUNCTIONS_DIR/ai/tgpt.zsh"
-source "$FUNCTIONS_DIR/ai/text.zsh"
 
 # Load Git-related functions
 source "$FUNCTIONS_DIR/git/commit.zsh"
