@@ -13,5 +13,4 @@ source "$FUNCTIONS_DIR/system/utils.zsh"
 source "$FUNCTIONS_DIR/search/web.zsh"
 
 # Load AI-related functions
-source "$FUNCTIONS_DIR/ai/tgpt.zsh"
 source "$FUNCTIONS_DIR/ai/ai-env.zsh"
