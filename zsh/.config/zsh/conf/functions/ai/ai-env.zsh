@@ -27,15 +27,31 @@ setOpenAIEnv() {
     
     # Provider selection
     echo -e "${BOLD}${GREEN}Select Provider:${NC}"
+    echo -e "  ${RED}0)${NC} Unset all environment variables"
     echo -e "  ${CYAN}1)${NC} g4f (Local GPT4Free Server)"
     echo -e "  ${PURPLE}2)${NC} Gemini API"
     echo ""
     
     # Get user selection
-    echo -e -n "${YELLOW}Select provider (1-2): ${NC}"
+    echo -e -n "${YELLOW}Select provider (0-2): ${NC}"
     read provider_choice
     
     case "$provider_choice" in
+        "0")
+            # Unset all environment variables
+            unset OPENAI_API_KEY
+            unset OPENAI_BASE_URL
+            unset OPENAI_MODEL
+            
+            # Show confirmation
+            clear
+            printf "\033c"
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+            echo -e "${BOLD}${BLUE}|     ${CYAN}OpenAI Environment Variables${BLUE}     |${NC}"
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+            echo -e "${BOLD}${GREEN}All OpenAI environment variables have been unset.${NC}"
+            return 0
+            ;;
         "1")
             # g4f flow
             local g4f_base_url="http://localhost:1337"
@@ -68,6 +84,8 @@ setOpenAIEnv() {
                 # Create a numbered menu for provider selection
                 echo -e "${BOLD}${GREEN}Available providers:${NC}"
                 echo ""  # Add spacing before provider list
+                echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to main menu${NC}"
+                echo ""  # Add spacing after back option
                 local i=1
                 local provider_array=()
                 while read -r p; do
@@ -83,8 +101,16 @@ setOpenAIEnv() {
                 echo ""  # Add spacing after provider list
                 
                 # Get user selection
-                echo -e -n "${YELLOW}Select provider (1-$((i-1))): ${NC}"
+                echo -e -n "${YELLOW}Select provider (0 to go back, 1-$((i-1))): ${NC}"
                 read selection
+                
+                # Check if user wants to go back
+                if [[ "$selection" == "0" ]]; then
+                    echo -e "${BLUE}Going back to main menu...${NC}"
+                    sleep 1.5  # Longer pause before clearing
+                    setOpenAIEnv  # Restart the function
+                    return 0
+                fi
                 
                 # Validate selection
                 if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
@@ -217,6 +243,8 @@ setOpenAIEnv() {
             
             echo -e "${BOLD}${GREEN}Available models:${NC}"
             echo ""  # Add spacing before model list
+            echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
+            echo ""  # Add spacing after back option
             local i=1
             local model_array=()
             while read -r m; do
@@ -232,8 +260,16 @@ setOpenAIEnv() {
             echo ""  # Add spacing after model list
             
             # Get user selection
-            echo -e -n "${YELLOW}Select model (1-$((i-1))): ${NC}"
+            echo -e -n "${YELLOW}Select model (0 to go back, 1-$((i-1))): ${NC}"
             read selection
+            
+            # Check if user wants to go back
+            if [[ "$selection" == "0" ]]; then
+                echo -e "${BLUE}Going back to provider selection...${NC}"
+                sleep 1.5  # Longer pause before clearing
+                setOpenAIEnv  # Restart the function
+                return 0
+            fi
             
             # Validate selection
             if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
