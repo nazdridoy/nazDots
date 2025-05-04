@@ -202,4 +202,8 @@ $ provider: curl -s "http://localhost:1337/v1/models" | grep -o '"id":"[^"]*","o
 $ provider_name: echo "<provider>"
 $ model_name: curl -s "http://localhost:1337/api/<provider>/models" | grep -o '"id":"[^"]*"' | sed 's/"id":"//g;s/"//g' --- --query "gpt-4o-mini" --preview-window hidden
 
+% navinaz, paruExcPkgInfo, paru, sysAdmin, packages, list, descriptions, pacman
+# List all explicitly installed packages with their descriptions
+paru -Qqe | while read pkg; do paru -Qi "$pkg" | awk '/^Name/{name=$3}/^Description/{desc=$0; sub(/^Description[ ]*:[ ]*/, "", desc); print name " : " desc; exit}'; done
+
 
