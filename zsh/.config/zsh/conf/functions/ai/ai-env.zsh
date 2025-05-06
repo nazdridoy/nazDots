@@ -134,7 +134,7 @@ setOpenAIEnv() {
                 # Get available models for the selected provider
                 echo -e "${CYAN}Fetching models for provider '$provider'...${NC}"
                 local models=$(curl -s -X 'GET' "$g4f_base_url/api/$provider/models" \
-                    -H 'accept: application/json' | jq -r '.data[] | .id')
+                    -H 'accept: application/json' | jq -r '.data[] | .id' | sort)
                 
                 if [[ -z "$models" ]]; then
                     echo -e "${RED}Error:${NC} No models found for provider '$provider'"
@@ -228,7 +228,7 @@ setOpenAIEnv() {
             fi
             
             # Parse models from response
-            local models=$(echo "$models_response" | jq -r '.data[].id' 2>/dev/null)
+            local models=$(echo "$models_response" | jq -r '.data[].id' 2>/dev/null | sort)
             
             if [[ -z "$models" ]]; then
                 echo -e "${RED}Error:${NC} No models found or failed to parse response"
@@ -331,7 +331,7 @@ setOpenAIEnv() {
                        .pricing.image == "0" and 
                        .pricing.web_search == "0" and 
                        .pricing.internal_reasoning == "0") | 
-                .id' "$temp_file" > "$models_file" 2>/dev/null
+                .id' "$temp_file" | sort > "$models_file" 2>/dev/null
             
             # Check if any free models were found
             if [[ ! -s "$models_file" ]]; then
