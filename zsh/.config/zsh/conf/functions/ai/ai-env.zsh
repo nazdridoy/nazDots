@@ -30,10 +30,11 @@ setOpenAIEnv() {
     echo -e "  ${RED}0)${NC} Unset all environment variables"
     echo -e "  ${CYAN}1)${NC} g4f (Local GPT4Free Server)"
     echo -e "  ${PURPLE}2)${NC} Gemini API"
+    echo -e "  ${GREEN}3)${NC} OpenRouter"
     echo ""
     
     # Get user selection
-    echo -e -n "${YELLOW}Select provider (0-2): ${NC}"
+    echo -e -n "${YELLOW}Select provider (0-3): ${NC}"
     read provider_choice
     
     case "$provider_choice" in
@@ -242,6 +243,117 @@ setOpenAIEnv() {
             echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
             
             echo -e "${BOLD}${GREEN}Available models:${NC}"
+            echo ""  # Add spacing before model list
+            echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
+            echo ""  # Add spacing after back option
+            local i=1
+            local model_array=()
+            while read -r m; do
+                # Use different colors for alternating rows
+                if (( i % 2 == 0 )); then
+                    echo -e "  ${CYAN}$i)${NC} $m"
+                else
+                    echo -e "  ${PURPLE}$i)${NC} $m"
+                fi
+                model_array+=("$m")
+                ((i++))
+            done <<< "$models"
+            echo ""  # Add spacing after model list
+            
+            # Get user selection
+            echo -e -n "${YELLOW}Select model (0 to go back, 1-$((i-1))): ${NC}"
+            read selection
+            
+            # Check if user wants to go back
+            if [[ "$selection" == "0" ]]; then
+                echo -e "${BLUE}Going back to provider selection...${NC}"
+                sleep 1.5  # Longer pause before clearing
+                setOpenAIEnv  # Restart the function
+                return 0
+            fi
+            
+            # Validate selection
+            if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
+                echo -e "${RED}Error:${NC} Invalid selection"
+                return 1
+            fi
+            
+            # Arrays in zsh are 1-indexed, adjust the index
+            model="${model_array[$selection]}"
+            ;;
+        "3")
+            # OpenRouter flow
+            base_url="https://openrouter.ai/api/v1"
+            
+            # Get API key from wallet
+            local timeout=5
+            echo -e "${CYAN}Retrieving OpenRouter API key...${NC}"
+            
+            # Use timeout command if available
+            if command -v timeout >/dev/null 2>&1; then
+                api_key=$(timeout $timeout kwalletcli -f "openrouter-api" -e "OPENROUTER_API" 2>/dev/null)
+            else
+                api_key=$(kwalletcli -f "openrouter-api" -e "OPENROUTER_API" 2>/dev/null)
+            fi
+            
+            # Verify the API key was retrieved
+            if [[ -z "$api_key" ]]; then
+                echo -e "${RED}Error:${NC} Failed to retrieve OpenRouter API key from KWallet!"
+                echo -e "Ensure:"
+                echo -e "1. KWallet is unlocked"
+                echo -e "2. Entry exists in 'openrouter-api' folder:"
+                echo -e "   - OPENROUTER_API"
+                return 1
+            fi
+            
+            # Create a temporary file
+            local temp_file=$(mktemp)
+            
+            # Fetch available models and save to temporary file
+            echo -e "${CYAN}Fetching available models from OpenRouter...${NC}"
+            curl -s -X GET "${base_url}/models" \
+                -H "Authorization: Bearer $api_key" > "$temp_file" 2>/dev/null
+            
+            # Check if the file has an error field
+            if [[ $(jq -r 'has("error")' "$temp_file") == "true" ]]; then
+                echo -e "${RED}Error:${NC} Failed to fetch models from OpenRouter API"
+                echo -e "API Response: $(jq -r '.error.message' "$temp_file")"
+                rm "$temp_file"
+                return 1
+            fi
+            
+            # Extract free models to another temp file
+            local models_file=$(mktemp)
+            jq -r '.data[] | 
+                select(.pricing.prompt == "0" and 
+                       .pricing.completion == "0" and 
+                       .pricing.request == "0" and 
+                       .pricing.image == "0" and 
+                       .pricing.web_search == "0" and 
+                       .pricing.internal_reasoning == "0") | 
+                .id' "$temp_file" > "$models_file" 2>/dev/null
+            
+            # Check if any free models were found
+            if [[ ! -s "$models_file" ]]; then
+                echo -e "${RED}Error:${NC} No free models found or failed to parse response"
+                rm "$temp_file" "$models_file"
+                return 1
+            fi
+            
+            # Read models from the file
+            local models=$(cat "$models_file")
+            
+            # Clean up temp files
+            rm "$temp_file" "$models_file"
+            
+            # Create a numbered menu for model selection
+            clear
+            printf "\033c"
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+            echo -e "${BOLD}${BLUE}|     ${CYAN}OpenRouter Model Selection${BLUE}       |${NC}"
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+            echo -e "${BOLD}${GREEN}Free models only:${NC}"
+            
             echo ""  # Add spacing before model list
             echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
             echo ""  # Add spacing after back option
