@@ -206,4 +206,8 @@ $ model_name: curl -s "http://localhost:1337/api/<provider>/models" | grep -o '"
 # List all explicitly installed packages with their descriptions
 paru -Qqe | while read pkg; do repo=$(paru -Si "$pkg" 2>/dev/null | grep "Repository" | awk '{print $3}' || echo "AUR"); paru -Qi "$pkg" | awk -v repo="$repo" '/^Name/{name=$3}/^Description/{desc=$0; sub(/^Description[ ]*:[ ]*/, "", desc); print name " (" repo ") : " desc; exit}'; done
 
+% navinaz, createMissingFiles, markdown, documentation, README, file, management
+# Create any missing markdown files referenced in README.md
+grep -oP '(?<=\()\.\/.*?\.md(?=\))' ./README.md | xargs -I {} sh -c 'test -f "{}" || touch "{}"'
+
 
