@@ -18,6 +18,6 @@ SAVEHIST='128000'
 export PAGER=less
 
 # ZSH Options
-setopt -J4 #DOC- 'https://zsh.sourceforge.io/Doc/Release/Options.html'
+# setopt -J4 #DOC- 'https://zsh.sourceforge.io/Doc/Release/Options.html'
 unsetopt SHARE_HISTORY
 #setopt SHARE_HISTORY
