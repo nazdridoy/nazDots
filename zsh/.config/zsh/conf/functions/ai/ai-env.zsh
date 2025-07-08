@@ -31,10 +31,11 @@ setOpenAIEnv() {
     echo -e "  ${CYAN}1)${NC} g4f (Local GPT4Free Server)"
     echo -e "  ${PURPLE}2)${NC} Gemini API"
     echo -e "  ${GREEN}3)${NC} OpenRouter"
+    echo -e "  ${BLUE}4)${NC} nazOllama_colab"
     echo ""
     
     # Get user selection
-    echo -e -n "${YELLOW}Select provider (0-3): ${NC}"
+    echo -e -n "${YELLOW}Select provider (0-4): ${NC}"
     read provider_choice
     
     case "$provider_choice" in
@@ -392,6 +393,87 @@ setOpenAIEnv() {
             # Arrays in zsh are 1-indexed, adjust the index
             model="${model_array[$selection]}"
             ;;
+        "4")
+            # nazOllama_colab flow
+            echo -e "${CYAN}Fetching nazOllama_colab base URL...${NC}"
+            local ollama_base_url=$(curl -sL https://nazkvhub.nazdridoy.workers.dev/v1/query/ollama-tunnel | jq -r '.url')
+
+            if [[ -z "$ollama_base_url" || "$ollama_base_url" == "null" ]]; then
+                echo -e "${RED}Error:${NC} Failed to fetch nazOllama_colab base URL."
+                return 1
+            fi
+            
+            base_url="$ollama_base_url/v1"
+
+            # Check if ollama server is running
+            if ! curl -s "$base_url/models" > /dev/null; then
+                echo -e "${RED}Error:${NC} Cannot connect to nazOllama_colab server at $base_url"
+                echo -e "Make sure the server is running and accessible"
+                return 1
+            fi
+
+            # Fetch available models
+            echo -e "${CYAN}Fetching available models from nazOllama_colab...${NC}"
+            local models_response=$(curl -s -X GET "${base_url}/models")
+
+            # Check for errors in the response
+            if echo "$models_response" | grep -q "error"; then
+                echo -e "${RED}Error:${NC} Failed to fetch models from nazOllama_colab API"
+                echo -e "API Response: $models_response"
+                return 1
+            fi
+
+            # Parse models from response
+            local models=$(echo "$models_response" | jq -r '.data[].id' 2>/dev/null | sort)
+
+            if [[ -z "$models" ]]; then
+                echo -e "${RED}Error:${NC} No models found or failed to parse response"
+                return 1
+            fi
+
+            # Create a numbered menu for model selection
+            clear
+            printf "\033c"
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+            echo -e "${BOLD}${BLUE}|    ${CYAN}nazOllama_colab Model Selection${BLUE}     |${NC}"
+            echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+
+            echo -e "${BOLD}${GREEN}Available models:${NC}"
+            echo ""
+            echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
+            echo ""
+            local i=1
+            local model_array=()
+            while read -r m; do
+                if (( i % 2 == 0 )); then
+                    echo -e "  ${CYAN}$i)${NC} $m"
+                else
+                    echo -e "  ${PURPLE}$i)${NC} $m"
+                fi
+                model_array+=("$m")
+                ((i++))
+            done <<< "$models"
+            echo ""
+
+            # Get user selection
+            echo -e -n "${YELLOW}Select model (0 to go back, 1-$((i-1))): ${NC}"
+            read selection
+
+            if [[ "$selection" == "0" ]]; then
+                echo -e "${BLUE}Going back to provider selection...${NC}"
+                sleep 1.5
+                setOpenAIEnv
+                return 0
+            fi
+
+            if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $((i-1)) ]; then
+                echo -e "${RED}Error:${NC} Invalid selection"
+                return 1
+            fi
+
+            model="${model_array[$selection]}"
+            api_key="nazOllama_colab" # nazOllama_colab doesn't require an API key
+            ;;
         *)
             echo -e "${RED}Error:${NC} Invalid selection"
             return 1
@@ -420,6 +502,8 @@ setOpenAIEnv() {
     # Show API key (masked except for first 4 and last 4 characters)
     if [[ "$api_key" == "dummy-key" ]]; then
         echo -e "${CYAN}OPENAI_API_KEY:${NC} ${GREEN}'$OPENAI_API_KEY'${NC} (dummy key for g4f)"
+    elif [[ "$api_key" == "nazOllama_colab" ]]; then
+        echo -e "${CYAN}OPENAI_API_KEY:${NC} ${GREEN}'$OPENAI_API_KEY'${NC} (not required)"
     else
         echo -e "${CYAN}OPENAI_API_KEY:${NC} ${GREEN}'${OPENAI_API_KEY:0:4}****${OPENAI_API_KEY: -4}'${NC}"
     fi
