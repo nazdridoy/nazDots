@@ -79,7 +79,7 @@
       "enabled": true,
       "keep": {
         "hourly": 1,
-        "daily": 2,
+        "daily": 1,
         "weekly": 3,
         "monthly": 1,
         "yearly": 0
