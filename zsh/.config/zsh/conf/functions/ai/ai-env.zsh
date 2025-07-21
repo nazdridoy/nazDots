@@ -194,24 +194,89 @@ setOpenAIEnv() {
             # Gemini flow
             base_url="https://generativelanguage.googleapis.com/v1beta/openai"
             
-            # Get API key from wallet
-            local timeout=5
-            echo -e "${CYAN}Retrieving Gemini API key...${NC}"
+            # Get available entries in the gemini-api folder
+            local wallet_folder="gemini-api"
+            echo -e "${CYAN}Retrieving available Gemini API keys from KWallet...${NC}"
             
-            # Use timeout command if available
-            if command -v timeout >/dev/null 2>&1; then
-                api_key=$(timeout $timeout kwalletcli -f "gemini-api" -e "GEMINI_API" 2>/dev/null)
-            else
-                api_key=$(kwalletcli -f "gemini-api" -e "GEMINI_API" 2>/dev/null)
+            local entries=$(kwallet-query --list-entries --folder "$wallet_folder" kdewallet 2>/dev/null)
+            
+            # Check if we got any entries
+            if [[ -z "$entries" ]]; then
+                echo -e "${RED}Error:${NC} Failed to retrieve Gemini API entries from KWallet!"
+                echo -e "Ensure:"
+                echo -e "1. KWallet is unlocked"
+                echo -e "2. The '$wallet_folder' folder exists in KWallet"
+                return 1
             fi
+            
+            # Create array of entries
+            local entry_array=()
+            while read -r entry; do
+                if [[ ! -z "$entry" ]]; then
+                    entry_array+=("$entry")
+                fi
+            done <<< "$entries"
+            
+            local entry_count=${#entry_array[@]}
+            local selected_entry=""
+            
+            # If there's more than one entry, let user choose
+            if [[ $entry_count -gt 1 ]]; then
+                clear
+                printf "\033c"
+                echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+                echo -e "${BOLD}${BLUE}|       ${CYAN}Gemini API Key Selection${BLUE}       |${NC}"
+                echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+                
+                echo -e "${BOLD}${GREEN}Available API Keys:${NC}"
+                echo ""
+                echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
+                echo ""
+                
+                local i=1
+                for entry in "${entry_array[@]}"; do
+                    # Use different colors for alternating rows
+                    if (( i % 2 == 0 )); then
+                        echo -e "  ${CYAN}$i)${NC} $entry"
+                    else
+                        echo -e "  ${PURPLE}$i)${NC} $entry"
+                    fi
+                    ((i++))
+                done
+                echo ""
+                
+                # Get user selection
+                echo -e -n "${YELLOW}Select API Key (0 to go back, 1-$entry_count): ${NC}"
+                read selection
+                
+                # Check if user wants to go back
+                if [[ "$selection" == "0" ]]; then
+                    echo -e "${BLUE}Going back to provider selection...${NC}"
+                    sleep 1.5
+                    setOpenAIEnv  # Restart the function
+                    return 0
+                fi
+                
+                # Validate selection
+                if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $entry_count ]; then
+                    echo -e "${RED}Error:${NC} Invalid selection"
+                    return 1
+                fi
+                
+                # Get selected entry
+                selected_entry="${entry_array[$selection]}"
+            else
+                # Only one entry, use it directly
+                selected_entry="${entry_array[1]}"
+                echo -e "${CYAN}Using the only available API key: ${GREEN}$selected_entry${NC}"
+            fi
+            
+            # Get the API key for the selected entry
+            api_key=$(kwallet-query --folder "$wallet_folder" --read-password "$selected_entry" kdewallet 2>/dev/null)
             
             # Verify the API key was retrieved
             if [[ -z "$api_key" ]]; then
-                echo -e "${RED}Error:${NC} Failed to retrieve Gemini API key from KWallet!"
-                echo -e "Ensure:"
-                echo -e "1. KWallet is unlocked"
-                echo -e "2. Entry exists in 'gemini-api' folder:"
-                echo -e "   - GEMINI_API"
+                echo -e "${RED}Error:${NC} Failed to retrieve Gemini API key for '$selected_entry' from KWallet!"
                 return 1
             fi
             
@@ -286,24 +351,89 @@ setOpenAIEnv() {
             # OpenRouter flow
             base_url="https://openrouter.ai/api/v1"
             
-            # Get API key from wallet
-            local timeout=5
-            echo -e "${CYAN}Retrieving OpenRouter API key...${NC}"
+            # Get available entries in the openrouter-api folder
+            local wallet_folder="openrouter-api"
+            echo -e "${CYAN}Retrieving available OpenRouter API keys from KWallet...${NC}"
             
-            # Use timeout command if available
-            if command -v timeout >/dev/null 2>&1; then
-                api_key=$(timeout $timeout kwalletcli -f "openrouter-api" -e "OPENROUTER_API" 2>/dev/null)
-            else
-                api_key=$(kwalletcli -f "openrouter-api" -e "OPENROUTER_API" 2>/dev/null)
+            local entries=$(kwallet-query --list-entries --folder "$wallet_folder" kdewallet 2>/dev/null)
+            
+            # Check if we got any entries
+            if [[ -z "$entries" ]]; then
+                echo -e "${RED}Error:${NC} Failed to retrieve OpenRouter API entries from KWallet!"
+                echo -e "Ensure:"
+                echo -e "1. KWallet is unlocked"
+                echo -e "2. The '$wallet_folder' folder exists in KWallet"
+                return 1
             fi
+            
+            # Create array of entries
+            local entry_array=()
+            while read -r entry; do
+                if [[ ! -z "$entry" ]]; then
+                    entry_array+=("$entry")
+                fi
+            done <<< "$entries"
+            
+            local entry_count=${#entry_array[@]}
+            local selected_entry=""
+            
+            # If there's more than one entry, let user choose
+            if [[ $entry_count -gt 1 ]]; then
+                clear
+                printf "\033c"
+                echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+                echo -e "${BOLD}${BLUE}|     ${CYAN}OpenRouter API Key Selection${BLUE}     |${NC}"
+                echo -e "${BOLD}${BLUE}+-------------------------------------+${NC}"
+                
+                echo -e "${BOLD}${GREEN}Available API Keys:${NC}"
+                echo ""
+                echo -e "  ${BOLD}${YELLOW}0)${NC} ${BOLD}${YELLOW}← Go back to provider selection${NC}"
+                echo ""
+                
+                local i=1
+                for entry in "${entry_array[@]}"; do
+                    # Use different colors for alternating rows
+                    if (( i % 2 == 0 )); then
+                        echo -e "  ${CYAN}$i)${NC} $entry"
+                    else
+                        echo -e "  ${PURPLE}$i)${NC} $entry"
+                    fi
+                    ((i++))
+                done
+                echo ""
+                
+                # Get user selection
+                echo -e -n "${YELLOW}Select API Key (0 to go back, 1-$entry_count): ${NC}"
+                read selection
+                
+                # Check if user wants to go back
+                if [[ "$selection" == "0" ]]; then
+                    echo -e "${BLUE}Going back to provider selection...${NC}"
+                    sleep 1.5
+                    setOpenAIEnv  # Restart the function
+                    return 0
+                fi
+                
+                # Validate selection
+                if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt $entry_count ]; then
+                    echo -e "${RED}Error:${NC} Invalid selection"
+                    return 1
+                fi
+                
+                # Get selected entry
+                selected_entry="${entry_array[$selection]}"
+            else
+                # Only one entry, use it directly
+                selected_entry="${entry_array[1]}"
+                echo -e "${CYAN}Using the only available API key: ${GREEN}$selected_entry${NC}"
+            fi
+            
+            # Get the API key for the selected entry
+            api_key=$(kwallet-query --folder "$wallet_folder" --read-password "$selected_entry" kdewallet 2>/dev/null)
             
             # Verify the API key was retrieved
             if [[ -z "$api_key" ]]; then
-                echo -e "${RED}Error:${NC} Failed to retrieve OpenRouter API key from KWallet!"
-                echo -e "Ensure:"
-                echo -e "1. KWallet is unlocked"
-                echo -e "2. Entry exists in 'openrouter-api' folder:"
-                echo -e "   - OPENROUTER_API"
+                echo -e "${RED}Error:${NC} Failed to retrieve OpenRouter API key for '$selected_entry' from KWallet!"
                 return 1
             fi
             
