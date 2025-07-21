@@ -4,7 +4,8 @@ asciiquarium
 
 % navinaz, zsh, zshOpenat, sysAdmin, admin, sys, shell
 # Real-time ZSH File Access using strace
-strace zsh 2>&1 | grep 'openat'
+strace zsh 2>&1 \
+  | grep 'openat'
 
 % navinaz, zsh, zsh-x, zshDebug, debug, sysAdmin, admin, sys, shell
 # open ZSH in debug mode 
@@ -42,7 +43,8 @@ xhost +si:localuser:$USER
 
 % navinaz, paruOrphanRemove, paru, sysAdmin, system, update, orphan, packages
 # Remove orphan packages using paru
-paru -Qdttq | pacman -Rns -
+paru -Qdttq \
+  | pacman -Rns -
 
 % navinaz, cargoCacheClean, cargo, sysAdmin, autoclean
 # Autoclean cargo cache
@@ -70,7 +72,9 @@ checkrebuild -v
 
 % navinaz, rebuildPackagesIfNeeded, checkrebuild, sysAdmin, rebuild-detector, paru, system, update, packages
 # Autorebuild packages after a major update
-checkrebuild | awk '{print $2}' | xargs -r paru -Syu --rebuild --noconfirm
+checkrebuild \
+  | awk '{print $2}' \
+  | xargs -r paru -Syu --rebuild --noconfirm
 
 % navinaz, ParuReviewPKGBUILD, Paru, sysAdmin, PKGBUILD, Review
 # Review and edit PKGBUILD before building with paru
@@ -110,7 +114,9 @@ curl -F file=@'<filePath>' -F expires=<expireINhours> -F secret= https://0x0.st
 
 % navinaz, GPGencryptFileShare, curl, Tools, upload, temp, "0x0.st", temp, Tools
 # Upload a temporary encryptedfile to 0x0.st with curl
-cat '<filePath>' | gpg --pinentry-mode loopback -ac -o- | curl -sD - -F file=@- -Fexpires=<expiresInHours> -Fsecret= https://0x0.st
+cat '<filePath>' \
+  | gpg --pinentry-mode loopback -ac -o- \
+  | curl -sD - -F file=@- -Fexpires=<expiresInHours> -Fsecret= https://0x0.st
 
 % navinaz, GPGdecryptCloudFile, gpg, curl, Tools, openssl, Decrypt, URL, Tools
 # Decrypt a file using GPG
@@ -122,7 +128,11 @@ curl -s <aes-256-cbc_pbkdf2_encrypted_file_URL> | openssl aes-256-cbc -pbkdf2 -d
 
 % navinaz, uploadEncryptedFile, curl, openssl, Tools, Encrypt, AES-256-CBC, PBKDF2, upload, Tools
 # Encrypt a file with OpenSSL and upload it to a file-sharing service
-openssl aes-256-cbc -pbkdf2 -e -in '<filePath>' | curl -sD - --upload-file - 'https://transfer.sh/<cloudFileName>' -H 'Max-Days: <MaxDays>' -H 'Max-Downloads: <MaxDownloads>' | grep -i -E 'transfer\.sh/|x-url-delete'
+openssl aes-256-cbc -pbkdf2 -e -in '<filePath>' \
+  | curl -sD - --upload-file - 'https://transfer.sh/<cloudFileName>' \
+      -H 'Max-Days: <MaxDays>' \
+      -H 'Max-Downloads: <MaxDownloads>' \
+  | grep -i -E 'transfer\.sh/|x-url-delete'
 
 % navinaz, randomString, python, Tools, random, string, generator, cli
 # Generate a random string of variable length based on user input
@@ -155,11 +165,14 @@ pkgfile -l <package>
 
 % navinaz, csvTojson, csvjson, jq, CSV, JSON, conversion, CLI
 # Convert a CSV file to JSON using csvjson and format it with jq
-csvjson <file path of a CSV> | jq .
+csvjson <file path of a CSV> \
+  | jq .
 
 % navinaz, listRunningKVM, KVM, qemu, virtualization, CLI
 # List manually launched KVM instances
-ps -ef | awk -e '/qemu/ && !/awk/' | sed -e 's/[^/]*//' -e 's/ -/\n\t-/g'
+ps -ef \
+  | awk -e '/qemu/ && !/awk/' \
+  | sed -e 's/[^/]*//' -e 's/ -/\n\t-/g'
 
 % navinaz, pkgFileSearch, pkgfile, Arch Linux, package management, CLI
 # Search for packages containing the target file in Arch Linux
@@ -167,7 +180,9 @@ pkgfile -s <targetFileName>
 
 % navinaz, decryptGitCrypt, git-crypt, GPG, KPDB_Hades, repository, CLI
 # Decrypt and unlock a git-crypt repository
-cat .openCloud/crypt/Hades/Cerberus | gpg -d --pinentry-mode loopback | git-crypt unlock -
+cat .openCloud/crypt/Hades/Cerberus \
+  | gpg -d --pinentry-mode loopback \
+  | git-crypt unlock -
 
 % navinaz, convertWebaToOpus, ffmpeg, audio conversion, CLI
 # Convert all .weba files to .opus and delete the .weba file if successful
@@ -184,11 +199,15 @@ for a in /opt/*; do [ -f "$a"/AM-updater ] && arg=$(basename "$a") && am -R "$ar
 
 % navinaz, dockerUpdateAll, docker, sysAdmin, containers, update, images, maintenance
 # Update all Docker images
-docker images | awk '{print $1":"$2}' | grep -v REPOSITORY | xargs -L 1 docker pull
+docker images \
+  | awk '{print $1":"$2}' \
+  | grep -v REPOSITORY \
+  | xargs -L 1 docker pull
 
 % navinaz, dockerCleanDangling, docker, sysAdmin, containers, cleanup, maintenance, images
 # Interactively remove all untagged/dangling Docker images
-docker images --filter "dangling=true" -q | xargs -r docker rmi --force
+docker images --filter "dangling=true" -q \
+  | xargs -r docker rmi --force
 
 % navinaz, dockerCleanDanglingInteractive, docker, sysAdmin, containers, cleanup, maintenance, images
 # Interactively remove all untagged/dangling Docker images with confirmation
@@ -204,10 +223,23 @@ $ model_name: curl -s "http://localhost:1337/api/<provider>/models" | grep -o '"
 
 % navinaz, excInsPkgInfo, paru, sysAdmin, packages, list, descriptions, pacman
 # List all explicitly installed packages with their descriptions
-paru -Qqe | while read pkg; do repo=$(paru -Si "$pkg" 2>/dev/null | grep "Repository" | awk '{print $3}' || echo "AUR"); paru -Qi "$pkg" | awk -v repo="$repo" '/^Name/{name=$3}/^Description/{desc=$0; sub(/^Description[ ]*:[ ]*/, "", desc); print name " (" repo ") : " desc; exit}'; done
+paru -Qqe \
+  | xargs -r paru -Si \
+  | awk -F': *' '
+      /^Name/        { name   = $2 }
+      /^Repository/  { repo   = $2 }
+      /^Description/ {
+          desc = $2
+          printf "%s (%s) : %s\n", name, repo, desc
+      }
+    ' \
+  | sort -f
 
 % navinaz, fixMdLinks, markdown, files, docs, FileManagement, links
 # Create empty files for broken Markdown links in the current directory
-grep -h -oP '\]\(\.\/\K(.*?)(?=\))' *.md | grep '\.md$' | sort -u | xargs -I {} sh -c '[ ! -f "{}" ] && echo "Creating {}" && touch "{}"'
+grep -h -oP '\]\(\.\/\K(.*?)(?=\))' *.md \
+  | grep '\.md$' \
+  | sort -u \
+  | xargs -I {} sh -c '[ ! -f "{}" ] && echo "Creating {}" && touch "{}"'
 
 
