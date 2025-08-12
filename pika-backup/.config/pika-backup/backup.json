@@ -54,6 +54,12 @@
         "PathPrefix": "Games"
       },
       {
+        "PathPrefix": "NAZ/Workspace/MISC-Projects/nazdocker-lab/data"
+      },
+      {
+        "PathPrefix": "NAZ/Workspace/TEMP"
+      },
+      {
         "PathPrefix": "NAZ/Workspace/TEMP/testNdelete"
       },
       {
