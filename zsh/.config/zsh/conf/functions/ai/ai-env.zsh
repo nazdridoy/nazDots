@@ -330,6 +330,40 @@ _handle_nazollama_colab() {
     return 0 # Success
 }
 
+_handle_oai() {
+    local key_info_str
+    key_info_str=$(_get_api_key_from_kwallet "openai-api" "OpenAI")
+    local ret_status=$?
+    if [[ $ret_status -ne 0 ]]; then
+        [[ $ret_status -eq 2 ]] && return 2 # Pass "go back" signal up
+        return 1 # It was a hard error
+    fi
+    # The last line of the output is the API key.
+    api_key=$(echo "$key_info_str" | tail -n 1)
+    
+    base_url="https://api.openai.com/v1"
+    
+    echo -e "${CYAN}Fetching available models from OpenAI...${NC}" >&2
+    local models_response=$(curl -s -X GET "${base_url}/models" -H "Authorization: Bearer $api_key")
+    if echo "$models_response" | grep -q "error"; then
+        echo -e "${RED}Error:${NC} Failed to fetch models from OpenAI API." >&2
+        echo -e "API Response: $(echo "$models_response" | jq -r .error.message)" >&2
+                return 1
+            fi
+            
+    local models_str=$(echo "$models_response" | jq -r '.data[].id' 2>/dev/null | sort)
+    if [[ -z "$models_str" ]]; then
+        echo -e "${RED}Error:${NC} No models found or failed to parse response." >&2
+                    return 1
+                fi
+    local -a models=("${(@f)models_str}")
+    
+    if ! model=$(_select_item "OpenAI Model Selection" "Available models:" "← Go back to provider selection" "${models[@]}"); then
+        return 2 # Go back to main
+    fi
+    return 0 # Success
+}
+
 # --- Main Function ---
 
 # Main function to set OpenAI environment variables based on user selection.
@@ -348,6 +382,7 @@ setOpenAIEnv() {
             "Gemini API"
             "OpenRouter"
             "nazOllama_colab"
+            "OpenAI"
         )
         
             local i=1
@@ -365,7 +400,7 @@ setOpenAIEnv() {
         echo "" >&2
         
         local choice=''
-        echo -e -n "${YELLOW}Select provider (0-4): ${NC}" >&2
+        echo -e -n "${YELLOW}Select provider (0-5): ${NC}" >&2
         read choice
 
         local handler_status=0
@@ -387,6 +422,9 @@ setOpenAIEnv() {
                 ;;
             "4")
                 _handle_nazollama_colab; handler_status=$?
+            ;;
+            "5")
+                _handle_oai; handler_status=$?
             ;;
         *)
                 echo -e "${RED}Error:${NC} Invalid selection." >&2
