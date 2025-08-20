@@ -85,3 +85,6 @@ export GDBHISTFILE="$XDG_CONFIG_HOME"/gdb/.gdb_history
 export GTK2_RC_FILES="$XDG_CONFIG_HOME"/gtk-2.0/gtkrc  
 # pyenv Env
 export PYENV_ROOT="$XDG_DATA_HOME"/pyenv 
+
+# HF-Inferoxy Base URL
+export HF_BASE="http://scw.nazdev.tech:11155" 

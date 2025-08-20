@@ -463,3 +463,9 @@ alias connect_phone='env PHONE=192.168.0.102 bash -c '\''HOME="$XDG_DATA_HOME"/a
 
 #Alias to run program bypassing any vpn or proxy or bind to specific interface (here enp0s20f0u1u2c2) 
 alias 'novpn'='BIND_INTERFACE=enp0s20f0u1u2c2 DNS_OVERRIDE_IP=8.8.8.8 LD_PRELOAD=/usr/lib/bindToInterface.so'
+
+# Set ADMIN_API_KEY of hf-inferoxy-api from KDE Wallet
+alias 'set-admin-key'='export ADMIN_API_KEY=$(kwallet-query --folder "hf-inferoxy-api" --read-password "ADMIN_API_KEY" kdewallet)'
+
+# Set HF_TOKEN of hf-inferoxy-api from KDE Wallet
+alias 'set-hf-token'='export HF_TOKEN=$(kwallet-query --folder "hf-inferoxy-api" --read-password "HF_TOKEN" kdewallet)'
