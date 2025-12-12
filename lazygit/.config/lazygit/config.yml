@@ -2,32 +2,30 @@
 gui:
   theme:
     activeBorderColor:
-      - '#589cf5'  # Terminal's color4 (vivid blue) + bold for emphasis
+      - '#589cf5' # Terminal's color4 (vivid blue) + bold for emphasis
       - bold
     inactiveBorderColor:
-      - '#bbbbbb'  # Terminal's cursor color (medium gray)
+      - '#bbbbbb' # Terminal's cursor color (medium gray)
     optionsTextColor:
-      - '#589cf5'  # Matches active elements (color4)
+      - '#589cf5' # Matches active elements (color4)
     selectedLineBgColor:
-      - '#000000'  # Terminal's color0 (pure black) for max contrast
+      - '#000000' # Terminal's color0 (pure black) for max contrast
     cherryPickedCommitBgColor:
-      - '#000000'  # Black background for clear differentiation
+      - '#000000' # Black background for clear differentiation
     cherryPickedCommitFgColor:
-      - '#589cf5'  # Blue text (color4) for visibility
+      - '#589cf5' # Blue text (color4) for visibility
     unstagedChangesColor:
-      - '#f9555f'  # Terminal's color1 (alert red) for urgency
+      - '#f9555f' # Terminal's color1 (alert red) for urgency
     defaultFgColor:
-      - '#ffffff'  # Terminal's foreground (pure white)
+      - '#ffffff' # Terminal's foreground (pure white)
     searchingActiveBorderColor:
-      - '#fdf029'  # Terminal's color3 (bright yellow) for visibility
-
+      - '#fdf029' # Terminal's color3 (bright yellow) for visibility
 #  authorColors:
 #    '*': '#934d95'  # Terminal's color5 (distinct purple)
 
-
 # Config relating to git
 git:
-  paging:
-    pager: delta --dark --paging=never
+  pagers:
+    - pager: delta --dark --paging=never
   # If true, periodically fetch from remote
   autoFetch: false
