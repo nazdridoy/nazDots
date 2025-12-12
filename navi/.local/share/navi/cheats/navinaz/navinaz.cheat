@@ -242,4 +242,13 @@ grep -h -oP '\]\(\.\/\K(.*?)(?=\))' *.md \
   | sort -u \
   | xargs -I {} sh -c '[ ! -f "{}" ] && echo "Creating {}" && touch "{}"'
 
+% navinaz, cloneVPS, rsync, ssh, sysAdmin, backup, vps, clone, remote
+# Clone all files from a VPS to host through SSH using rsync (vpsHost: e.g. example.vps, destinationPath: e.g. ~/backup)
+rsync -aAXHv --info=progress2 --numeric-ids \
+  --exclude={"/dev/*","/proc/*","/sys/*","/run/*","/tmp/*","/mnt/*","/media/*","/lost+found"} \
+  -e "ssh" \
+  --rsync-path="sudo rsync" \
+  "root@<vpsHost>:/" \
+  <destinationPath>
+
 
