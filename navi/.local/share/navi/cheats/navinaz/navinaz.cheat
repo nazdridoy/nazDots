@@ -82,7 +82,15 @@ paru --review <PackageName>
 
 % navinaz, pdfConvertToNonSearchable, pdftoppm, FileManagement, PDF, Non-Searchable, Image, Convert, Text
 # Convert Text PDF to Non-Searchable Image PDF
-pdftoppm -png '<inputFileName>.pdf' output_imagex599 && sleep 1 && convert output_imagex599-*.png '<inputFileName>_non_searchable_output.pdf' && rm output_imagex599-*.png
+pdftoppm -png '<inputFileName>.pdf' output_imagex599 && sleep 1 && magick output_imagex599-*.png '<inputFileName>_non_searchable_output.pdf' && rm output_imagex599-*.png
+
+% navinaz, batchImageConvert, magick, imagemagick, FileManagement, convert, batch, images
+# Batch convert images in current directory (strips metadata for smaller files)
+magick mogrify -format <targetFormat> -quality <quality> -strip *.<sourceExt>
+
+$ sourceExt: echo -e "png\njpg\njpeg\nwebp\nbmp\ntiff\ngif\navif\nheic" --- --query "png"
+$ targetFormat: echo -e "jpg\npng\nwebp\navif\nbmp\ntiff\ngif" --- --query "jpg"
+$ quality: echo -e "85\n90\n95\n80\n75\n70\n100" --- --query "85"
 
 % navinaz, pacvis, sysAdmin, pacgraph, pacman, Visualize
 # Visualize pacman local database with an interactive graph using pacvis
