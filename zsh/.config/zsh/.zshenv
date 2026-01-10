@@ -4,6 +4,22 @@ export XDG_CACHE_HOME="${HOME}/.cache"
 export XDG_DATA_HOME="${HOME}/.local/share"
 export XDG_STATE_HOME="${HOME}/.local/state"
 
+# Preferred editor for local and remote sessions
+export EDITOR='nvim'
+export VISUAL='nvim'
+# Use Neovim when running sudoedit
+export SUDO_EDITOR='nvim'
+
+# SSH GUI Askpass
+export SSH_ASKPASS=/usr/bin/ksshaskpass
+export SSH_ASKPASS_REQUIRE=prefer
+export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/ssh-agent.socket"
+
+# Silence non-critical KDE/Qt framework warnings in the terminal.
+# Specifically hides "empty domain" (kf.i18n) and "missing platform plugin" (kf.windowsystem) 
+# messages often triggered by CLI tools like kwalletcli.
+export QT_LOGGING_RULES="kf.i18n.warning=false;kf.windowsystem.warning=false"
+
 # Export local PATH
 if [ -d "$HOME/.bin" ] ;
   then PATH="$HOME/.bin:$PATH"
