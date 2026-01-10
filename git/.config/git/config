@@ -1,20 +1,23 @@
 [user]
-	name = nazdridoy
-	email = nazdridoy399@gmail.com
-	signingkey = nazDridoy399@gmail.com
-[global]
+    name = nazdridoy
+    email = nazdridoy399@gmail.com
+    signingkey = 93DBBC7085AC4BC9
+
 [commit]
-	gpgsign = true
-[init]
-	defaultbranch = main
+    gpgsign = true
+
 [tag]
-	gpgSign = true
+    gpgsign = true
+
+[init]
+    defaultbranch = main
+
 [core]
-	pager = delta
+    pager = delta
+
 [interactive]
-	diffFilter = delta --color-only
+    diffFilter = delta --color-only
+
 [delta]
-	navigate = true
-	line-numbers = true
-[gpg "ssh"]
-	allowedSignersFile = /home/nazmul/.config/git/allowed_signers
+    navigate = true
+    line-numbers = true
