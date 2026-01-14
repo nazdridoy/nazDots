@@ -10,6 +10,9 @@ export VISUAL='nvim'
 # Use Neovim when running sudoedit
 export SUDO_EDITOR='nvim'
 
+# Default Browser
+export BROWSER='brave'
+
 # SSH GUI Askpass
 export SSH_ASKPASS=/usr/bin/ksshaskpass
 export SSH_ASKPASS_REQUIRE=prefer
@@ -19,6 +22,13 @@ export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/ssh-agent.socket"
 # Specifically hides "empty domain" (kf.i18n) and "missing platform plugin" (kf.windowsystem) 
 # messages often triggered by CLI tools like kwalletcli.
 export QT_LOGGING_RULES="kf.i18n.warning=false;kf.windowsystem.warning=false"
+
+# Ibus KDE
+#export GTK_IM_MODULE=ibus
+#export QT_IM_MODULE=ibus
+#export XMODIFIERS=@im=ibus
+export GLFW_IM_MODULE=ibus
+
 
 # Export local PATH
 if [ -d "$HOME/.bin" ] ;
@@ -84,12 +94,6 @@ export PATH="$PATH:$HOME/.luarocks/bin"
 
 # export perl local::db PATH
 # eval $(perl -I$HOME/perl5/lib/perl5 -Mlocal::lib)
-
-# Ibus KDE
-#export GTK_IM_MODULE=ibus
-#export QT_IM_MODULE=ibus
-#export XMODIFIERS=@im=ibus
-export GLFW_IM_MODULE=ibus
 
 # w3m browser data
 export W3M_DIR="$XDG_DATA_HOME"/w3m
