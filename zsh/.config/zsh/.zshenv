@@ -26,7 +26,7 @@ export QT_LOGGING_RULES="kf.i18n.warning=false;kf.windowsystem.warning=false"
 # Ibus KDE
 #export GTK_IM_MODULE=ibus
 #export QT_IM_MODULE=ibus
-#export XMODIFIERS=@im=ibus
+export XMODIFIERS=@im=ibus
 export GLFW_IM_MODULE=ibus
 
 
@@ -105,6 +105,10 @@ export GDBHISTFILE="$XDG_CONFIG_HOME"/gdb/.gdb_history
 export GTK2_RC_FILES="$XDG_CONFIG_HOME"/gtk-2.0/gtkrc  
 # pyenv Env
 export PYENV_ROOT="$XDG_DATA_HOME"/pyenv 
+
+# Force virsh to use the System instance (root) instead of the User session
+# This allows managing VMs in /var/lib/libvirt/images without using sudo
+export LIBVIRT_DEFAULT_URI="qemu:///system"
 
 # HF-Inferoxy Base URL
 export HF_BASE="http://scw.nazdev.tech:11155" 
