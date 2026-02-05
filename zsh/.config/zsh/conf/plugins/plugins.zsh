@@ -11,7 +11,7 @@ repos=(
   hlissner/zsh-autopair #auto pair {},(),[]...
 
   # plugins you want loaded last
-  zplugin/F-Sy-H #Feature-rich Syntax Highlighting for Zsh
+  z-shell/F-Sy-H #Feature-rich Syntax Highlighting for Zsh
 
 )
 
