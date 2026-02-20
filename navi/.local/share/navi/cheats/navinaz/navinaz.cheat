@@ -259,4 +259,15 @@ rsync -aAXHv --info=progress2 --numeric-ids \
   "root@<vpsHost>:/" \
   <destinationPath>
 
+% navinaz, longImageToPdf, convert, magick, pdf, multi-page, cover
+# Convert a long screenshot and a cover image into a multi-page PDF (A4 Ratio, Fixed Scaling)
+width=$(magick identify -format "%w" "<long_ss_path>"); \
+page_height=$(( width * 1414 / 1000 )); \
+magick -density 72 -units pixelsperinch \
+  \( "<cover_path>" -resize "${width}x" -strip +repage \) \
+  \( "<long_ss_path>" -crop "${width}x${page_height}" -strip +repage \) \
+  "<output_pdf_name>.pdf"
 
+$ long_ss_path: find . -maxdepth 2 -name "*.png" --- --query "y.png"
+$ cover_path: find . -maxdepth 2 -name "*.png" --- --query "cover.png"
+$ output_pdf_name: echo "output"
