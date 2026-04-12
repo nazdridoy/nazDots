@@ -168,3 +168,8 @@ alias unhblock='hblock -S none -D none' # disable hblock ad/tracker blocking
 # ── Utilities ────────────────────────────────────────────────────────
 alias path='echo -e ${PATH//:/\\n}'        # print PATH entries, one per line
 alias merge='xrdb -merge ~/.Xresources' # reload Xresources settings
+
+# ── Kitty ────────────────────────────────────────────────────────────
+if [[ "$TERM" == "xterm-kitty" ]]; then
+    alias ssh="kitten ssh"
+fi
