@@ -297,4 +297,24 @@ webcam-manager() {
   esac
   
   echo "\nWebcam manager operation completed."
-} 
+}
+
+# Compress a qcow2 VM disk image in-place using qemu-img
+qcow2-compress() {
+    if [[ -z "$1" ]]; then
+        echo "Usage: qcow2-compress <disk.qcow2>"
+        return 1
+    fi
+
+    local DISK="$1"
+    local TMP="${DISK}.tmp"
+
+    echo "Compressing $DISK..."
+    if qemu-img convert -p -O qcow2 -c "$DISK" "$TMP"; then
+        mv "$TMP" "$DISK"
+        echo "Successfully compressed $DISK"
+    else
+        echo "Error: Compression failed."
+        rm -f "$TMP"
+    fi
+}
