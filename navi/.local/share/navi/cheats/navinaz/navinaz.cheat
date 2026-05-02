@@ -271,3 +271,21 @@ magick -density 72 -units pixelsperinch \
 $ long_ss_path: find . -maxdepth 2 -name "*.png" --- --query "y.png"
 $ cover_path: find . -maxdepth 2 -name "*.png" --- --query "cover.png"
 $ output_pdf_name: echo "output"
+
+% navinaz, addPdfCover, pdfunite, magick, imagemagick, PDF, cover, prepend, FileManagement
+# Add a cover image to an existing PDF file (matches page width of the existing PDF at 150dpi)
+pdf_width_pts=$(pdfinfo '<input_pdf_path>' | awk '/Page size/{printf "%.0f", $3}') \
+&& density=150 \
+&& pixel_width=$(( pdf_width_pts * density / 72 )) \
+&& magick \
+  -density ${density} -units pixelsperinch \
+  '<cover_image_path>' \
+  -resize "${pixel_width}x" \
+  -strip +repage \
+  /tmp/_navi_cover_page.pdf \
+&& pdfunite /tmp/_navi_cover_page.pdf '<input_pdf_path>' '<output_pdf_path>' \
+&& rm /tmp/_navi_cover_page.pdf
+
+$ cover_image_path: find . -maxdepth 3 \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) --- --query "cover"
+$ input_pdf_path: find . -maxdepth 3 -iname "*.pdf" --- --query ".pdf"
+$ output_pdf_path: echo "output_with_cover.pdf"
