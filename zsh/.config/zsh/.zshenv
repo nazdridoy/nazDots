@@ -23,8 +23,8 @@ export ZSH_CUSTOM="$XDG_DATA_HOME/oh-my-zsh/custom"
 # ── Input Method (IBus) ─────────────────────────────────────────────
 #export GTK_IM_MODULE=ibus
 #export QT_IM_MODULE=ibus
-export XMODIFIERS=@im=ibus
-export GLFW_IM_MODULE=ibus
+# export XMODIFIERS=@im=ibus
+# export GLFW_IM_MODULE=ibus
 
 # ── KDE / Qt ─────────────────────────────────────────────────────────
 # Silence non-critical KDE/Qt framework warnings in the terminal.
