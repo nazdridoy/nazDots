@@ -13,11 +13,12 @@
     defaultbranch = main
 
 [core]
-    pager = delta
+#    pager = delta
+    pager = hunk pager
 
-[interactive]
-    diffFilter = delta --color-only
-
-[delta]
-    navigate = true
-    line-numbers = true
+#[interactive]
+#    diffFilter = delta --color-only
+#
+#[delta]
+#    navigate = true
+#    line-numbers = true
