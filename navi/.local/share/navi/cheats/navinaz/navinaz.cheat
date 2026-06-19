@@ -289,3 +289,16 @@ pdf_width_pts=$(pdfinfo '<input_pdf_path>' | awk '/Page size/{printf "%.0f", $3}
 $ cover_image_path: find . -maxdepth 3 \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) --- --query "cover"
 $ input_pdf_path: find . -maxdepth 3 -iname "*.pdf" --- --query ".pdf"
 $ output_pdf_path: echo "output_with_cover.pdf"
+
+% navinaz, xorriso, iso, FileManagement, create, image, disk, mkisofs
+# Create a robust ISO image from a directory using xorriso (Rock Ridge + Joliet)
+xorriso -as mkisofs \
+  -o '<outputIsoPath>' \
+  -V '<volumeLabel>' \
+  -r -J \
+  '<sourceDir>'
+
+$ sourceDir: find . -mindepth 1 -maxdepth 4 -type d 2>/dev/null
+$ outputIsoPath: echo "<sourceDir>.iso"
+$ volumeLabel: basename "<sourceDir>" | tr '[:lower:]' '[:upper:]' | tr ' ' '_'
+
