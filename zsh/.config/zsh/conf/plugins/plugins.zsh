@@ -1,6 +1,4 @@
-########################################################
-#####               Plugin Settings                #####
-########################################################
+# ── Plugin Settings ─────────────────────────────────────────────────
 repos=(
   # plugins that you want loaded first
   
@@ -64,16 +62,12 @@ F-Sy-H ##For syntax highlighting
 
 )
 
-########################################################
-#####            Extra plugin (source)             #####
-########################################################
+# ── Extra plugin (source) ────────────────────────────────────────────
 
 # Load zsh-users/zsh-completions
 fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
 
-########################################################
-#####              Plugins Settings                #####
-########################################################
+# ── Plugins Settings ────────────────────────────────────────────────
 
 # Fzf-tab
 
@@ -92,9 +86,7 @@ zstyle ':completion:complete:*:options' sort false
 # Specify the fuzzy search program tmux
 zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
 
-########################################################
-#####               Plugins Exports                #####
-########################################################
+# ── Plugins Exports ─────────────────────────────────────────────────
 
 export _Z_DATA="$XDG_DATA_HOME/z"
 
