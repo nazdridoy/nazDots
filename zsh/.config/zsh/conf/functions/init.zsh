@@ -4,7 +4,7 @@
 FUNCTIONS_DIR="${${(%):-%x}:h}"
 
 # Load plugin initializations
-source "$FUNCTIONS_DIR/plugins/init.zsh"
+source "$FUNCTIONS_DIR/pluginInits/init.zsh"
 
 # Load system utilities
 source "$FUNCTIONS_DIR/system/utils.zsh"
