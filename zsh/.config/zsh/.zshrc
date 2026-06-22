@@ -95,6 +95,8 @@ source "$ZDOTDIR/conf/functions/init.zsh"
 source "$ZDOTDIR/conf/aliases/aliases.zsh"
 # Source zsh user shellFixes
 source "$ZDOTDIR/conf/shellFixes/shellFixes.zsh"
+# Source zsh user completions
+source "$ZDOTDIR/conf/completions/init.zsh"
 
 
 # User configuration
