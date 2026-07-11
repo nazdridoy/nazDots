@@ -8,7 +8,7 @@ alias wget='wget --hsts-file="$XDG_DATA_HOME/wget-hsts" --continue' # XDG-compli
 alias rg='rg --sort path'                                           # ripgrep sorted by path
 
 # ── File Listing (eza) ───────────────────────────────────────────────
-eza_params=('--git' '--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale' 'all')
+eza_params=('--git' '--icons' '--classify' '--group-directories-first' '--time-style=long-iso' '--group' '--color-scale=all')
 
 alias ls='ls --hyperlink --color=auto'
 alias l='eza --hyperlink ${eza_params}'                             # short listing

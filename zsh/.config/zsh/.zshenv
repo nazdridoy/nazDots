@@ -8,7 +8,8 @@ export XDG_STATE_HOME="${HOME}/.local/state"
 export EDITOR='nvim'
 export VISUAL='nvim'
 export SUDO_EDITOR='nvim'
-export BROWSER='brave'
+#export BROWSER='brave'
+export BROWSER='zen-browser'
 
 # ── SSH ──────────────────────────────────────────────────────────────
 export SSH_ASKPASS=/usr/bin/ksshaskpass
