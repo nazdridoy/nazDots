@@ -20,16 +20,13 @@ gui:
       - '#ffffff' # Terminal's foreground (pure white)
     searchingActiveBorderColor:
       - '#fdf029' # Terminal's color3 (bright yellow) for visibility
-#  authorColors:
-#    '*': '#934d95'  # Terminal's color5 (distinct purple)
+      #  authorColors:
+      #    '*': '#934d95'  # Terminal's color5 (distinct purple)
   useHunkModeInStagingView: false
-
-
-
 # Config relating to git
 git:
-  pagers:
-#    - pager: delta --dark --paging=never
-    - pager: hunk pager --mode split --line-numbers
+  diffRenderers:
+    #    - pager: delta --dark --paging=never
+    - command: hunk pager --mode split --line-numbers
   # If true, periodically fetch from remote
   autoFetch: false
