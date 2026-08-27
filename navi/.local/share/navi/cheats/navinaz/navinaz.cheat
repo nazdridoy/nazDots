@@ -302,3 +302,25 @@ $ sourceDir: find . -mindepth 1 -maxdepth 4 -type d 2>/dev/null
 $ outputIsoPath: echo "<sourceDir>.iso"
 $ volumeLabel: basename "<sourceDir>" | tr '[:lower:]' '[:upper:]' | tr ' ' '_'
 
+% navinaz, nmcli, bridge, create, batch, sysAdmin, NetworkManager, network, sysAdmin
+# Create one or more NM bridges: br-<prefix><N> with IP 192.168.200.<N>/24
+for i in $(seq -w <startIndex> <endIndex>); do \
+  sudo nmcli con add type bridge \
+    ifname "br-<prefix>$i" \
+    con-name "br-<prefix>$i" \
+    ipv4.method manual \
+    ipv4.addresses "192.168.200.$(( 10#$i ))/24"; \
+done
+
+$ startIndex: seq 1 253 --- --query "1"
+$ endIndex: seq 2 254 --- --query "2"
+
+% navinaz, nmcli, bridge, delete, batch, sysAdmin, NetworkManager, network, sysAdmin
+# Delete one or more NM bridges by prefix and index range: br-<prefix><N>
+for i in $(seq -w <startIndex> <endIndex>); do \
+  sudo nmcli con delete "br-<prefix>$i"; \
+done
+
+$ startIndex: seq 1 253 --- --query "1"
+$ endIndex: seq 2 254 --- --query "2"
+
