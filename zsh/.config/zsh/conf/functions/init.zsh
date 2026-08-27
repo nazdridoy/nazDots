@@ -7,7 +7,7 @@ FUNCTIONS_DIR="${${(%):-%x}:h}"
 source "$FUNCTIONS_DIR/pluginInits/init.zsh"
 
 # Load system utilities
-source "$FUNCTIONS_DIR/system/utils.zsh"
+source "$FUNCTIONS_DIR/system/init.zsh"
 
 # Load web search functions
 source "$FUNCTIONS_DIR/search/web.zsh"
